@@ -156,6 +156,7 @@ export default function App() {
   // 언어가 바뀔 때마다 브라우저 탭 제목(html의 <title>)도 같이 갱신
   useEffect(() => {
     document.title = t.pageTitle;
+    console.log("탭 제목 갱신 시도:", t.pageTitle);
   }, [t.pageTitle]);
 
   const handleCodeChange = (e) => {
