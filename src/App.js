@@ -140,7 +140,6 @@ export default function App() {
   const [inputCode, setInputCode] = useState("");
   const [featureState, setFeatureState] = useState({});
 
-  // 처음 렌더링부터 브라우저 언어를 바로 반영 (깜빡임 방지)
   const [selectedLang, setSelectedLang] = useState(() => detectBrowserLanguage());
   const [autoDetected, setAutoDetected] = useState(true);
   const [langOpen, setLangOpen] = useState(false);
@@ -153,6 +152,11 @@ export default function App() {
   }, []);
 
   const t = TRANSLATIONS[selectedLang] || TRANSLATIONS.en;
+
+  // 언어가 바뀔 때마다 브라우저 탭 제목(html의 <title>)도 같이 갱신
+  useEffect(() => {
+    document.title = t.pageTitle;
+  }, [t.pageTitle]);
 
   const handleCodeChange = (e) => {
     const onlyDigits = e.target.value.replace(/[^0-9]/g, "").slice(0, 6);
