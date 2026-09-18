@@ -15,22 +15,42 @@ const TOGGLE_FEATURES = [
   { id: "large-text", title: "큰 글자", desc: "글씨 크기를 크게 키워요", icon: "🔠" },
 ];
 
+// 경로에서 코드 부분만 추출 (예: "/482913" → "482913")
 const getCodeFromPath = () => {
   const path = window.location.pathname.replace(/^\/|\/$/g, "");
   return /^\d{6}$/.test(path) ? path : null;
+};
+
+// 브라우저 언어 코드(예: "ko-KR", "en-US")를 우리가 쓰는 id로 변환
+const detectBrowserLanguage = () => {
+  const browserLang = navigator.language || navigator.userLanguage || "en";
+  const langCode = browserLang.split("-")[0].toLowerCase();
+
+  const matched = LANGUAGES.find((l) => l.id === langCode);
+  return matched ? matched.id : "en"; // 지원 안 하는 언어면 영어로 기본값
 };
 
 export default function App() {
   const [connectedCode, setConnectedCode] = useState(getCodeFromPath());
   const [inputCode, setInputCode] = useState("");
   const [featureState, setFeatureState] = useState({});
-  const [selectedLang, setSelectedLang] = useState(null); // 선택된 언어 id (없으면 null)
-  const [langOpen, setLangOpen] = useState(false); // 언어 카드가 펼쳐져 있는지
+  const [selectedLang, setSelectedLang] = useState(null);
+  const [langOpen, setLangOpen] = useState(false);
+  const [autoDetected, setAutoDetected] = useState(false);
 
+  // 브라우저 뒤로가기/앞으로가기 대응
   useEffect(() => {
     const onPopState = () => setConnectedCode(getCodeFromPath());
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  // 처음 렌더링될 때 딱 한 번만 브라우저 언어 자동 감지
+  useEffect(() => {
+    const detected = detectBrowserLanguage();
+    setSelectedLang(detected);
+    setAutoDetected(true);
+    // socket.emit("set-language", { code: connectedCode, lang: detected });
   }, []);
 
   const handleCodeChange = (e) => {
@@ -49,7 +69,6 @@ export default function App() {
     setConnectedCode(null);
     setInputCode("");
     setFeatureState({});
-    setSelectedLang(null);
     setLangOpen(false);
   };
 
@@ -61,9 +80,11 @@ export default function App() {
   const handleSelectLang = (lang) => {
     setSelectedLang(lang.id);
     setLangOpen(false);
+    setAutoDetected(false);
     // socket.emit("set-language", { code: connectedCode, lang: lang.id });
   };
 
+  // ── 코드 없음: 입력 화면 ──
   if (!connectedCode) {
     return (
       <div className="page center">
@@ -90,6 +111,7 @@ export default function App() {
     );
   }
 
+  // ── 코드 있음: 기능 버튼 화면 ──
   const currentLang = LANGUAGES.find((l) => l.id === selectedLang);
 
   return (
@@ -113,7 +135,9 @@ export default function App() {
             </div>
             <span className="title">언어 선택</span>
             <span className="desc">
-              {currentLang ? `${currentLang.flag} ${currentLang.label} 선택됨` : "원하는 언어로 화면을 바꿔요"}
+              {currentLang
+                ? `${currentLang.flag} ${currentLang.label} 선택됨${autoDetected && !langOpen ? " (자동 감지)" : ""}`
+                : "원하는 언어로 화면을 바꿔요"}
             </span>
           </button>
 
