@@ -1,4 +1,4 @@
-export default {
+const zh = {
   pageTitle: "自助终端远程控制",
   connectDesc: "请输入自助终端屏幕上显示的6位数代码",
   codePlaceholder: "例如：482913",
@@ -24,3 +24,5 @@ export default {
     "large-text": { title: "大字体", desc: "放大文字大小" },
   },
 };
+
+export default zh;
