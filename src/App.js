@@ -19,6 +19,14 @@ const TOGGLE_FEATURE_ICONS = {
 
 const STORAGE_KEY = "kiosk-remote-settings";
 
+// 서버가 보내는 에러 코드 → 번역 파일의 키 이름 매핑
+const ERROR_CODE_KEY_MAP = {
+  INVALID_CODE_FORMAT: "errorInvalidFormat",
+  CODE_NOT_FOUND: "errorCodeNotFound",
+  ALREADY_CONNECTED: "errorAlreadyConnected",
+  TOO_MANY_ATTEMPTS: "errorTooManyAttempts",
+};
+
 const getCodeFromPath = () => {
   const path = window.location.pathname.replace(/^\/|\/$/g, "");
   return /^\d{6}$/.test(path) ? path : null;
@@ -79,6 +87,7 @@ export default function App() {
   const pendingCodeRef = useRef(null);
   const connectedCodeRef = useRef(null);
   const selectedLangRef = useRef(selectedLang);
+  const tRef = useRef(null); // 에러 코드 번역 시 최신 t를 읽기 위한 ref
 
   useEffect(() => {
     connectedCodeRef.current = connectedCode;
@@ -129,13 +138,15 @@ export default function App() {
       setConnecting(false);
       setConnectError(null);
       window.history.pushState({}, "", `/${code}`);
-      // 연결되자마자 내 언어를 키오스크에게 바로 보냄
       socket.emit("set-language", { code, lang: selectedLangRef.current });
     };
 
-    const onJoinError = (message) => {
+    // 서버가 보낸 에러 코드를, 지금 화면 언어에 맞는 문구로 번역해서 저장
+    const onJoinError = (errorCode) => {
       setConnecting(false);
-      setConnectError(message);
+      const key = ERROR_CODE_KEY_MAP[errorCode];
+      const currentT = tRef.current;
+      setConnectError(key && currentT ? currentT[key] : errorCode);
       setConnectedCode(null);
       window.history.pushState({}, "", "/");
     };
@@ -145,7 +156,6 @@ export default function App() {
       setConnecting(false);
     };
 
-    // 키오스크가 코드를 갱신해도 리모컨 연결은 유지 — URL과 코드만 조용히 갱신
     const onKioskCodeChanged = ({ code }) => {
       setConnectedCode(code);
       window.history.pushState({}, "", `/${code}`);
@@ -179,6 +189,10 @@ export default function App() {
   }, [urlCode]);
 
   const t = TRANSLATIONS[selectedLang] || TRANSLATIONS.en;
+
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
 
   useEffect(() => {
     voiceGuideRef.current = !!featureState["voice-guide"];
@@ -381,7 +395,7 @@ export default function App() {
       <div className={`${pageClass} center`}>
         <div className="connect-card">
           <h1>{t.pageTitle}</h1>
-          <p>연결 확인 중...</p>
+          <p>{t.connectingLabel}</p>
         </div>
       </div>
     );
