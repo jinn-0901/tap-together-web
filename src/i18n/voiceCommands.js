@@ -35,48 +35,157 @@ export const FEATURE_TRIGGERS = {
 // 켜기/끄기 "방향"을 나타내는 단어 — 기능 이름이랑 같이 말했을 때 on/off를 직접 결정함
 export const ACTION_TRIGGERS = {
   ko: {
-    on: ["켜줘", "켜라", "켜", "실행해줘", "활성화"],
-    off: ["꺼줘", "꺼라", "꺼", "중지해줘", "비활성화", "해제해줘"],
+    on: [
+      "켜줘", "켜라", "켜", "켜죠", "켜봐", "켜주세요", "켜줄래", "켜줄래요",
+      "실행해줘", "실행해", "실행해주세요",
+      "활성화", "활성화해줘", "활성화해", "활성화시켜줘",
+      "적용해줘", "적용해", "적용해주세요",
+      "사용할래", "사용할게", "사용해줘", "사용해",
+      "써줘", "써볼래", "이용할게",
+      "온해줘", "온시켜줘",
+    ],
+    off: [
+      "꺼줘", "꺼라", "꺼", "꺼죠", "꺼봐", "꺼주세요", "꺼줄래", "꺼줄래요",
+      "중지해줘", "중지해", "중지해주세요",
+      "비활성화", "비활성화해줘", "비활성화해", "비활성화시켜줘",
+      "해제해줘", "해제해", "해제해주세요",
+      "그만사용", "그만써", "안쓸래", "안쓸게",
+      "종료해줘", "종료해",
+      "오프해줘", "오프시켜줘",
+    ],
   },
   en: {
-    on: ["turn on", "switch on", "enable"],
-    off: ["turn off", "switch off", "disable"],
+    on: [
+      "turn on", "turnon", "switch on", "switchon", "enable", "enabled",
+      "activate", "activateit", "start", "startit",
+      "use it", "useit", "please turn on", "canyouturnon",
+      "i want it on", "makeiton", "setitto on",
+    ],
+    off: [
+      "turn off", "turnoff", "switch off", "switchoff", "disable", "disabled",
+      "deactivate", "deactivateit", "stop", "stopit",
+      "no more", "nomore", "please turn off", "canyouturnoff",
+      "i want it off", "makeitoff", "setitto off",
+    ],
   },
   zh: {
-    on: ["打开", "开启", "启用"],
-    off: ["关闭", "关掉", "停用"],
+    on: [
+      "打开", "开启", "启用", "开一下", "开个",
+      "打开一下", "帮我打开", "麻烦打开", "请打开",
+      "启动", "启动一下",
+    ],
+    off: [
+      "关闭", "关掉", "停用", "关一下", "关个",
+      "关闭一下", "帮我关闭", "麻烦关闭", "请关闭",
+      "停止", "停止一下",
+    ],
   },
   ja: {
-    on: ["オンにして", "つけて", "有効にして"],
-    off: ["オフにして", "消して", "無効にして"],
+    on: [
+      "オンにして", "つけて", "有効にして", "オンして",
+      "起動して", "起動させて", "使いたい", "使います",
+      "お願いオン", "つけてください",
+    ],
+    off: [
+      "オフにして", "消して", "無効にして", "オフして",
+      "停止して", "止めて", "使わない", "使いません",
+      "お願いオフ", "消してください",
+    ],
   },
   vi: {
-    on: ["bật"],
-    off: ["tắt"],
+    on: [
+      "bật", "bậtlên", "bậtnó", "bậtgiúp", "làmơnbật",
+      "kíchhoạt", "mởlên", "mởgiúp",
+    ],
+    off: [
+      "tắt", "tắtđi", "tắtnó", "tắtgiúp", "làmơntắt",
+      "vôhiệuhóa", "đóng", "đónggiúp",
+    ],
   },
 };
 
 // 언어별로 "이 언어로 바꿔줘"라고 말했을 때 인식할 단어들 (5개 카드 언어끼리만 전환 가능)
 export const LANGUAGE_TRIGGERS = {
-  ko: { ko: ["한국어"], en: ["영어"], zh: ["중국어", "중문"], ja: ["일본어", "일어"], vi: ["베트남어"] },
-  en: { ko: ["korean"], en: ["english"], zh: ["chinese"], ja: ["japanese"], vi: ["vietnamese"] },
-  zh: { ko: ["韩语", "韩国语"], en: ["英语"], zh: ["中文"], ja: ["日语"], vi: ["越南语"] },
-  ja: { ko: ["韓国語"], en: ["英語"], zh: ["中国語"], ja: ["日本語"], vi: ["ベトナム語"] },
-  vi: { ko: ["tiếnghàn"], en: ["tiếnganh"], zh: ["tiếngtrung"], ja: ["tiếngnhật"], vi: ["tiếngviệt"] },
+  ko: {
+    ko: ["한국어", "한글", "국어"],
+    en: ["영어", "잉글리시"],
+    zh: ["중국어", "중문", "차이니즈"],
+    ja: ["일본어", "일어", "재패니즈"],
+    vi: ["베트남어", "베트남말"],
+  },
+  en: {
+    ko: ["korean"],
+    en: ["english"],
+    zh: ["chinese", "mandarin"],
+    ja: ["japanese"],
+    vi: ["vietnamese"],
+  },
+  zh: {
+    ko: ["韩语", "韩国语", "韩文"],
+    en: ["英语", "英文"],
+    zh: ["中文", "汉语", "普通话"],
+    ja: ["日语", "日文"],
+    vi: ["越南语", "越南文"],
+  },
+  ja: {
+    ko: ["韓国語", "ハングル"],
+    en: ["英語"],
+    zh: ["中国語", "中国語"],
+    ja: ["日本語"],
+    vi: ["ベトナム語"],
+  },
+  vi: {
+    ko: ["tiếnghàn", "tiếnghànquốc"],
+    en: ["tiếnganh"],
+    zh: ["tiếngtrung", "tiếngtrungquốc"],
+    ja: ["tiếngnhật"],
+    vi: ["tiếngviệt"],
+  },
 };
 
-// "~말고", "~하지 말고", "~아니고" 처럼 "이건 아니고 이거"라는 뜻의 연결어
-// 이 단어들을 기준으로 문장을 나누면, 마지막 조각이 화자가 진짜 원하는 명령일 확률이 높음
+// "언어로 바꿔줘" 계열 트리거 단어 — 언어 이름 + 이 동작 단어가 같이 있으면 훨씬 확실하게 매칭됨
+// (동작 단어 없이 언어 이름만 말해도 기존처럼 매칭은 되지만, 있으면 더 자연스러운 문장도 커버)
+const LANGUAGE_ACTION_WORDS = {
+  ko: ["바꿔줘", "바꿔", "바꿔주세요", "바꿀래", "바꿀래요", "변경해줘", "변경해", "설정해줘", "선택해줘"],
+  en: ["change to", "switch to", "set to", "changeit", "switchit", "pleasechange"],
+  zh: ["换成", "改成", "切换成", "设置成", "帮我换", "帮我改"],
+  ja: ["に変えて", "に切り替えて", "に設定して", "に変更して"],
+  vi: ["đổisang", "chuyểnsang", "đặtsang", "làmơnđổi"],
+};
+
+// "~말고", "~아니고" 등 "이건 아니고 이거"라는 뜻의 연결어
 const CUT_MARKERS = {
-  ko: ["말고", "하지말고", "아니고", "대신", "않고", "않고서"],
-  en: ["instead of", "not", "don't", "do not"],
-  zh: ["而不是", "别", "不要"],
-  ja: ["ではなく", "じゃなくて"],
-  vi: ["chứkhông", "khôngphải"],
+  ko: [
+    "말고", "하지말고", "아니고", "대신",
+    "않고", "않고서", "안하고", "안 하고",
+    "말구", "말라구", "말라고",
+    "가아니라", "이아니라", "게아니라", "게아니고",
+    "거말고", "거아니고", "말구서",
+    "가말고", "이말고",
+  ],
+  en: [
+    "insteadof", "instead", "not",
+    "don't", "donot", "doesn't", "doesnot",
+    "ratherthan", "butnot", "asopposedto",
+    "nott", "butinstead",
+  ],
+  zh: [
+    "而不是", "别", "不要", "不是",
+    "不用", "无需", "不需要",
+    "而非", "并非",
+  ],
+  ja: [
+    "ではなく", "じゃなくて", "ではなくて",
+    "じゃなく", "ではない",
+    "でなく", "じゃない",
+  ],
+  vi: [
+    "chứkhông", "khôngphải", "màkhông",
+    "khôngcần", "thayvì",
+    "chứđừng", "màđừng",
+  ],
 };
 
-// 문장을 CUT_MARKERS 기준으로 자르고, 마지막 조각만 남김 (진짜 하려는 말)
-// 자를 지점이 없으면 원문 그대로 반환
 const keepLastClause = (cleaned) => {
   let result = cleaned;
   let cutFound = false;
@@ -84,7 +193,7 @@ const keepLastClause = (cleaned) => {
   for (const langKey of Object.keys(CUT_MARKERS)) {
     for (const marker of CUT_MARKERS[langKey]) {
       const markerCleaned = marker.replace(/\s/g, "").toLowerCase();
-      const idx = result.lastIndexOf(markerCleaned); // 여러 번 나오면 제일 마지막 것 기준
+      const idx = result.lastIndexOf(markerCleaned);
       if (idx !== -1) {
         result = result.slice(idx + markerCleaned.length);
         cutFound = true;
@@ -95,14 +204,47 @@ const keepLastClause = (cleaned) => {
   return { text: result, cutFound };
 };
 
-// "~하지 마", "~지 마", "~안 돼", "~말아" 처럼 순수하게 "하지 말라"는 뜻으로 끝나는 표현
-// 이 표현이 (자르고 남은) 문장에 있으면, 그 문장 자체가 "하지 말라"는 뜻이므로 명령을 실행하면 안 됨
+// "~하지 마", "~됐어", "~필요없어" 처럼 순수하게 거부/취소의 뜻으로 끝나는 표현
 const PURE_NEGATION_SUFFIXES = {
-  ko: ["하지마", "지마", "안돼", "말아", "마세요", "말아주세요"],
-  en: ["don'tdoit", "donot", "never"],
-  zh: ["不要", "别"],
-  ja: ["しないで", "やめて"],
-  vi: ["đừng"],
+  ko: [
+    "하지마", "하지마세요", "하지말아줘", "하지말아주세요", "하지말아라", "하지마십시오",
+    "지마", "지마세요", "지말아줘", "지말아주세요",
+    "안돼", "안돼요", "안되", "안됨", "안된다",
+    "말아", "말아줘", "말아주세요",
+    "노노", "안할래", "안할게", "안할거야",
+    "취소", "취소해줘", "취소해", "취소할게",
+    "됐어", "됐어요", "됐다", "필요없어", "필요없어요",
+    "그만해", "그만둬", "냅둬", "놔둬",
+    "됐고", "안해도돼", "안해도됨",
+    "원치않아", "원하지않아", "싫어", "싫어요",
+  ],
+  en: [
+    "don'tdoit", "donotdoit", "donot", "never",
+    "stopit", "cancel", "nope", "no",
+    "nothanks", "nah", "skip", "skipit",
+    "forgetit", "leaveit", "notinterested",
+    "idontwantthat", "cancelthat", "neveremind",
+    "noneedto", "noneed",
+  ],
+  zh: [
+    "不要", "别", "不用", "取消",
+    "不行", "不可以", "别这样",
+    "算了", "不用了", "免了", "不必",
+    "省了", "不需要了", "不用管",
+  ],
+  ja: [
+    "しないで", "やめて", "だめ", "だめです",
+    "キャンセル", "いらない", "けっこうです",
+    "結構です", "いいです", "無理",
+    "遠慮します", "やめとく", "やめとくわ",
+    "やめときます",
+  ],
+  vi: [
+    "đừng", "đừnglàm", "khônglàm",
+    "hủy", "thôi", "khôngcần",
+    "khôngmuốn", "bỏqua", "thôikhỏi",
+    "khôngcầnđâu", "thôiđi",
+  ],
 };
 
 const endsWithPureNegation = (cleaned) => {
@@ -128,23 +270,30 @@ const detectAction = (cleaned) => {
 export const matchVoiceCommand = (spokenText) => {
   const original = spokenText.replace(/\s/g, "").toLowerCase();
 
-  // 1. "~말고", "~아니고" 같은 연결어가 있으면, 그 뒤에 나온 마지막 조각만 실제 명령으로 봄
-  //    예: "영어로 바꾸지 말고 한국어로 바꿔줘" → "한국어로바꿔줘"만 남김
   const { text: cleaned, cutFound } = keepLastClause(original);
 
-  // 2. 자르고 남은 문장 자체가 "~하지 마" 류로 끝나면, 그 자체가 거부/취소 의미이므로 아무 것도 실행 안 함
-  //    예: "한국어로 바꾸지 마" (연결어 없음, 원문 전체가 부정형) → 무시
-  //    예: "고대비 켜지 말고 끄지 마" (마지막 조각도 부정형) → 무시
   if (endsWithPureNegation(cleaned)) {
     return null;
   }
 
-  // 3. 연결어로 잘라냈는데 남은 조각이 텅 비어있으면(예: "~말고"로 문장이 끝난 경우) 실행할 게 없음
   if (cutFound && cleaned.length === 0) {
     return null;
   }
 
-  // 4. 기능 이름 찾기
+  const excludedLangIds = new Set();
+  if (cutFound) {
+    const beforePart = original.slice(0, original.length - cleaned.length);
+    for (const langKey of Object.keys(LANGUAGE_TRIGGERS)) {
+      const langTriggers = LANGUAGE_TRIGGERS[langKey];
+      for (const targetLangId of Object.keys(langTriggers)) {
+        if (langTriggers[targetLangId].some((trigger) => beforePart.includes(trigger.toLowerCase()))) {
+          excludedLangIds.add(targetLangId);
+        }
+      }
+    }
+  }
+
+  // 기능 이름 찾기
   let matchedFeature = null;
   for (const langKey of Object.keys(FEATURE_TRIGGERS)) {
     const featureTriggers = FEATURE_TRIGGERS[langKey];
@@ -158,14 +307,15 @@ export const matchVoiceCommand = (spokenText) => {
   }
 
   if (matchedFeature) {
-    const action = detectAction(cleaned); // "on" | "off" | null
+    const action = detectAction(cleaned);
     return { type: "feature", id: matchedFeature, action: action || "toggle" };
   }
 
-  // 5. 언어 변경 명령 찾기
+  // 언어 변경 명령 찾기 — 블랙리스트에 있는 언어는 건너뜀
   for (const langKey of Object.keys(LANGUAGE_TRIGGERS)) {
     const langTriggers = LANGUAGE_TRIGGERS[langKey];
     for (const targetLangId of Object.keys(langTriggers)) {
+      if (excludedLangIds.has(targetLangId)) continue;
       if (langTriggers[targetLangId].some((trigger) => cleaned.includes(trigger.toLowerCase()))) {
         return { type: "language", id: targetLangId };
       }
