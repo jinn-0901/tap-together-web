@@ -23,6 +23,22 @@ const ko = {
     voice: { title: "음성 인식", desc: "말로 키오스크를 조작할 수 있어요" },
     "large-text": { title: "큰 글자", desc: "글씨 크기를 크게 키워요" },
   },
+  categories: {
+    coffee: "☕ 커피",
+    latte: "🥛 라떼",
+    tea: "🍵 차",
+    ade: "🍹 에이드",
+  },
+  menu: {
+    americano: "아메리카노",
+    "cafe-latte": "카페라떼",
+    "strawberry-latte": "딸기라떼",
+    "choco-latte": "초코라떼",
+    "green-tea": "녹차",
+    "yuja-tea": "유자차",
+    "iced-tea": "아이스티",
+    lemonade: "레모네이드",
+  },
 };
 
 export default ko;
