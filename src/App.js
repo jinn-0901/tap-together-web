@@ -50,10 +50,9 @@ const saveSettings = (settings) => {
 export default function App() {
   const urlCode = getCodeFromPath();
 
-  // connectedCode는 "서버가 실제로 확인해준" 코드일 때만 세팅됨
   const [connectedCode, setConnectedCode] = useState(null);
   const [inputCode, setInputCode] = useState("");
-  const [connecting, setConnecting] = useState(!!urlCode); // URL로 바로 들어왔으면 확인 중 상태로 시작
+  const [connecting, setConnecting] = useState(!!urlCode);
   const [connectError, setConnectError] = useState(null);
 
   const savedSettings = useRef(loadSavedSettings()).current;
@@ -77,7 +76,12 @@ export default function App() {
   const lastErrorRef = useRef(null);
   const voiceGuideRef = useRef(false);
   const volumeRef = useRef(savedSettings?.volume ?? 0.8);
-  const pendingCodeRef = useRef(null); // 지금 서버 응답을 기다리고 있는 코드
+  const pendingCodeRef = useRef(null);
+  const connectedCodeRef = useRef(null); // leave-room 보낼 때 최신 코드를 읽기 위함
+
+  useEffect(() => {
+    connectedCodeRef.current = connectedCode;
+  }, [connectedCode]);
 
   useEffect(() => {
     const onPopState = () => {
@@ -102,10 +106,21 @@ export default function App() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
-  // 서버의 join-room 응답(성공/실패)을 실제로 처리 — 여기가 이번에 새로 생긴 핵심 로직
+  // 탭을 닫거나 새로고침하기 직전, 서버에 방을 떠난다고 최대한 알림 (베스트 에포트)
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (connectedCodeRef.current) {
+        socket.emit("leave-room", connectedCodeRef.current);
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
+  // 서버의 join-room 응답 처리
   useEffect(() => {
     const onJoined = (code) => {
-      if (pendingCodeRef.current !== code) return; // 이미 지나간 요청의 응답이면 무시
+      if (pendingCodeRef.current !== code) return;
       setConnectedCode(code);
       setConnecting(false);
       setConnectError(null);
@@ -116,27 +131,32 @@ export default function App() {
       setConnecting(false);
       setConnectError(message);
       setConnectedCode(null);
-      window.history.pushState({}, "", "/"); // 잘못된 코드면 URL도 원래대로 되돌림
+      window.history.pushState({}, "", "/");
     };
 
     const onKioskLeft = () => {
-      // 연결돼 있던 키오스크가 사라짐 → 연결 해제된 걸로 처리
       setConnectedCode(null);
       setConnecting(false);
+    };
+
+    const onKioskActivity = ({ message, langId }) => {
+      speak(message, langId);
     };
 
     socket.on("joined", onJoined);
     socket.on("join-error", onJoinError);
     socket.on("kiosk-left", onKioskLeft);
+    socket.on("kiosk-activity", onKioskActivity);
 
     return () => {
       socket.off("joined", onJoined);
       socket.off("join-error", onJoinError);
       socket.off("kiosk-left", onKioskLeft);
+      socket.off("kiosk-activity", onKioskActivity);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 페이지 로드 시 URL에 코드가 있으면(QR 스캔) 자동으로 참가 시도
   useEffect(() => {
     if (urlCode) {
       pendingCodeRef.current = urlCode;
@@ -158,15 +178,18 @@ export default function App() {
     saveSettings({ featureState, selectedLang, volume });
   }, [featureState, selectedLang, volume]);
 
+  // 사파리는 cancel() 직후 바로 speak()하면 소리가 씹히는 버그가 있어서 살짝 텀을 줌
   const speak = (text, langId) => {
     if (!voiceGuideRef.current) return;
     if (!window.speechSynthesis) return;
 
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = SPEECH_LANG_MAP[langId || selectedLang] || "ko-KR";
-    utterance.volume = volumeRef.current;
-    window.speechSynthesis.speak(utterance);
+    setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = SPEECH_LANG_MAP[langId || selectedLang] || "ko-KR";
+      utterance.volume = volumeRef.current;
+      window.speechSynthesis.speak(utterance);
+    }, 50);
   };
 
   const showToast = (message, langId) => {
@@ -181,7 +204,6 @@ export default function App() {
     setConnectError(null);
   };
 
-  // 이제 바로 연결됨 화면으로 안 넘어가고, 서버 응답을 기다림
   const handleConnect = () => {
     if (inputCode.length !== 6) return;
     setConnecting(true);
@@ -190,7 +212,11 @@ export default function App() {
     socket.emit("join-room", inputCode);
   };
 
+  // 이제 서버에게도 명확히 "나갈게"라고 알림 — 이게 재연결 문제의 핵심 수정
   const handleDisconnect = () => {
+    if (connectedCode) {
+      socket.emit("leave-room", connectedCode);
+    }
     window.history.pushState({}, "", "/");
     setConnectedCode(null);
     setInputCode("");
@@ -338,7 +364,6 @@ export default function App() {
   const isHighContrast = !!featureState["high-contrast"];
   const pageClass = `page ${isLargeText ? "large" : ""} ${isHighContrast ? "high-contrast" : ""}`.trim();
 
-  // ── 서버 응답 기다리는 중(확인 중) 화면 ──
   if (connecting) {
     return (
       <div className={`${pageClass} center`}>
@@ -350,7 +375,6 @@ export default function App() {
     );
   }
 
-  // ── 연결 안 됨: 코드 입력 화면 ──
   if (!connectedCode) {
     return (
       <div className={`${pageClass} center`}>
@@ -379,7 +403,6 @@ export default function App() {
     );
   }
 
-  // ── 코드 있음: 기능 버튼 화면 ──
   const currentLang = CARD_LANGUAGES.find((l) => l.id === selectedLang);
   const isVoiceGuideOn = !!featureState["voice-guide"];
 
@@ -395,7 +418,6 @@ export default function App() {
       </header>
 
       <main className="grid">
-        {/* 언어 선택 카드 */}
         <div className={`card lang-card ${langOpen ? "expanded" : ""}`}>
           <button className="lang-header" onClick={() => setLangOpen((prev) => !prev)}>
             <div className="card-top">
@@ -429,7 +451,6 @@ export default function App() {
           )}
         </div>
 
-        {/* 음성 인식 카드 */}
         <button
           className={`card voice-card ${listening ? "on" : ""}`}
           onClick={handleVoiceClick}
@@ -442,7 +463,6 @@ export default function App() {
           <span className="desc">{listening ? t.listening : t.features.voice.desc}</span>
         </button>
 
-        {/* 음성 안내 카드 */}
         <div className={`card ${isVoiceGuideOn ? "on" : ""}`}>
           <button className="voice-guide-toggle" onClick={() => toggleFeature("voice-guide")}>
             <div className="card-top">
@@ -475,7 +495,6 @@ export default function App() {
           )}
         </div>
 
-        {/* 나머지 on/off 기능들 (쉬운 화면, 큰 글자, 고대비) */}
         {TOGGLE_FEATURE_IDS.filter((id) => id !== "voice" && id !== "voice-guide").map((id) => {
           const feature = t.features[id];
           const isOn = !!featureState[id];
