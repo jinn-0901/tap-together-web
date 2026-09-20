@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./App.css";
 import { CARD_LANGUAGES, SPEECH_LANG_MAP, isCardLanguage } from "./i18n/languages";
 import { TRANSLATIONS } from "./i18n/translations";
@@ -28,7 +28,10 @@ export default function App() {
   const [langOpen, setLangOpen] = useState(false);
 
   const [listening, setListening] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState(""); // 실시간으로 인식되는 텍스트
   const [toastMsg, setToastMsg] = useState(null);
+
+  const matchedRef = useRef(false);
 
   useEffect(() => {
     const onPopState = () => setConnectedCode(getCodeFromPath());
@@ -68,7 +71,6 @@ export default function App() {
     // socket.emit("toggle-feature", { code: connectedCode, featureId, on: !featureState[featureId] });
   };
 
-  // 카드에서 직접 언어 선택
   const handleSelectLang = (lang) => {
     setSelectedLang(lang.id);
     setLangOpen(false);
@@ -76,7 +78,6 @@ export default function App() {
     // socket.emit("set-language", { code: connectedCode, lang: lang.id });
   };
 
-  // 음성으로 언어 변경 명령이 들어왔을 때 (카드에 있는 5개 언어만 지원)
   const handleVoiceLanguageChange = (langId) => {
     if (!isCardLanguage(langId)) {
       showToast(t.notRecognized);
@@ -89,39 +90,85 @@ export default function App() {
     showToast(newT.languageToast(langInfo.label));
   };
 
-  // 음성 인식 실행
-  const handleVoiceClick = () => {
+  const applyVoiceMatch = (match) => {
+    if (match.type === "feature") {
+      const willBeOn = !featureState[match.id];
+      setFeatureState((prev) => ({ ...prev, [match.id]: willBeOn }));
+      const name = t.features[match.id].title;
+      showToast(willBeOn ? t.featureOnToast(name) : t.featureOffToast(name));
+      // socket.emit("toggle-feature", { code: connectedCode, featureId: match.id, on: willBeOn });
+    } else if (match.type === "language") {
+      handleVoiceLanguageChange(match.id);
+      // socket.emit("set-language", { code: connectedCode, lang: match.id });
+    }
+  };
+
+  // 언어 하나로 듣기 시도 → 못 알아들으면 다음 언어로 자동 재시도
+  const listenWithLangQueue = (langQueue) => {
+    if (langQueue.length === 0) {
+      setListening(false);
+      setLiveTranscript("");
+      showToast(t.notRecognized);
+      return;
+    }
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
+      setListening(false);
       showToast(t.notSupported);
       return;
     }
 
+    const [currentLangId, ...restQueue] = langQueue;
+    matchedRef.current = false;
+
     const recognition = new SpeechRecognition();
-    recognition.lang = SPEECH_LANG_MAP[selectedLang] || "ko-KR";
-    recognition.onstart = () => setListening(true);
-    recognition.onend = () => setListening(false);
+    recognition.lang = SPEECH_LANG_MAP[currentLangId] || "ko-KR";
+    recognition.interimResults = true; // 말하는 도중에도 결과를 계속 받기 위해 필수
+
+    recognition.onstart = () => {
+      setListening(true);
+      setLiveTranscript("");
+    };
+
+    // 말하는 동안 계속 호출됨 (중간 결과 + 최종 결과)
     recognition.onresult = (e) => {
-      const spokenText = e.results[0][0].transcript;
-      const match = matchVoiceCommand(spokenText); // 언어 상관없이 전체 트리거 검색
-
-      if (!match) {
-        showToast(t.notRecognized);
-        return;
+      let combined = "";
+      for (let i = 0; i < e.results.length; i++) {
+        combined += e.results[i][0].transcript;
       }
+      setLiveTranscript(combined);
 
-      if (match.type === "feature") {
-        const willBeOn = !featureState[match.id];
-        setFeatureState((prev) => ({ ...prev, [match.id]: willBeOn }));
-        const name = t.features[match.id].title;
-        showToast(willBeOn ? t.featureOnToast(name) : t.featureOffToast(name));
-        // socket.emit("toggle-feature", { code: connectedCode, featureId: match.id, on: willBeOn });
-      } else if (match.type === "language") {
-        handleVoiceLanguageChange(match.id);
-        // socket.emit("set-language", { code: connectedCode, lang: match.id });
+      // 마지막 결과가 확정됐을 때만 명령 매칭 시도
+      const lastResult = e.results[e.results.length - 1];
+      if (lastResult.isFinal) {
+        const match = matchVoiceCommand(combined);
+        if (match) {
+          matchedRef.current = true;
+          applyVoiceMatch(match);
+        }
       }
     };
+
+    recognition.onend = () => {
+      if (matchedRef.current) {
+        setListening(false);
+        setLiveTranscript("");
+      } else {
+        listenWithLangQueue(restQueue);
+      }
+    };
+
+    recognition.onerror = () => {
+      listenWithLangQueue(restQueue);
+    };
+
     recognition.start();
+  };
+
+  const handleVoiceClick = () => {
+    const otherLangs = CARD_LANGUAGES.map((l) => l.id).filter((id) => id !== selectedLang);
+    listenWithLangQueue([selectedLang, ...otherLangs]);
   };
 
   // ── 코드 없음: 입력 화면 ──
@@ -200,29 +247,22 @@ export default function App() {
           )}
         </div>
 
+        {/* 음성 인식 카드 */}
+        <button
+          className={`card voice-card ${listening ? "on" : ""}`}
+          onClick={handleVoiceClick}
+          disabled={listening}
+        >
+          <div className="card-top">
+            <span className={`icon ${listening ? "pulse" : ""}`}>{TOGGLE_FEATURE_ICONS.voice}</span>
+          </div>
+          <span className="title">{t.features.voice.title}</span>
+          <span className="desc">{listening ? t.listening : t.features.voice.desc}</span>
+        </button>
+
         {/* 나머지 on/off 기능들 */}
-        {TOGGLE_FEATURE_IDS.map((id) => {
+        {TOGGLE_FEATURE_IDS.filter((id) => id !== "voice").map((id) => {
           const feature = t.features[id];
-
-          if (id === "voice") {
-            return (
-              <button
-                key={id}
-                className={`card ${listening ? "on" : ""}`}
-                onClick={handleVoiceClick}
-              >
-                <div className="card-top">
-                  <span className="icon">{TOGGLE_FEATURE_ICONS[id]}</span>
-                  <span className={`switch ${listening ? "on" : ""}`}>
-                    <span className="switch-knob" />
-                  </span>
-                </div>
-                <span className="title">{feature.title}</span>
-                <span className="desc">{listening ? t.listening : feature.desc}</span>
-              </button>
-            );
-          }
-
           const isOn = !!featureState[id];
           return (
             <button
@@ -243,6 +283,19 @@ export default function App() {
           );
         })}
       </main>
+
+      {/* 듣고 있는 동안 뜨는 오버레이: 실시간 인식 텍스트 표시 */}
+      {listening && (
+        <div className="voice-overlay">
+          <div className="voice-box">
+            <span className="mic-pulse">🎙️</span>
+            <p className="voice-listening-text">{t.listening}</p>
+            <p className="voice-transcript">
+              {liveTranscript || "..."}
+            </p>
+          </div>
+        </div>
+      )}
 
       {toastMsg && <p className="toast">{toastMsg}</p>}
     </div>
