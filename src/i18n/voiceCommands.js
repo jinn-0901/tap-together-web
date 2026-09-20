@@ -32,21 +32,26 @@ export const LANGUAGE_TRIGGERS = {
 };
 
 // 말한 문장을 분석해서 기능/언어 명령을 찾아냄
+// 지금 선택된 언어와 상관없이, 5개 언어의 트리거 전체를 다 뒤져서 매칭함
 // 못 찾으면 null 반환 (App.js에서 "알아듣지 못했어요"로 예외 처리)
-export const matchVoiceCommand = (spokenText, currentLangKey) => {
+export const matchVoiceCommand = (spokenText) => {
   const cleaned = spokenText.replace(/\s/g, "").toLowerCase();
 
-  const featureTriggers = FEATURE_TRIGGERS[currentLangKey] || FEATURE_TRIGGERS.en;
-  for (const featureId of Object.keys(featureTriggers)) {
-    if (featureTriggers[featureId].some((trigger) => cleaned.includes(trigger.toLowerCase()))) {
-      return { type: "feature", id: featureId };
+  for (const langKey of Object.keys(FEATURE_TRIGGERS)) {
+    const featureTriggers = FEATURE_TRIGGERS[langKey];
+    for (const featureId of Object.keys(featureTriggers)) {
+      if (featureTriggers[featureId].some((trigger) => cleaned.includes(trigger.toLowerCase()))) {
+        return { type: "feature", id: featureId };
+      }
     }
   }
 
-  const langTriggers = LANGUAGE_TRIGGERS[currentLangKey] || LANGUAGE_TRIGGERS.en;
-  for (const langId of Object.keys(langTriggers)) {
-    if (langTriggers[langId].some((trigger) => cleaned.includes(trigger.toLowerCase()))) {
-      return { type: "language", id: langId };
+  for (const langKey of Object.keys(LANGUAGE_TRIGGERS)) {
+    const langTriggers = LANGUAGE_TRIGGERS[langKey];
+    for (const targetLangId of Object.keys(langTriggers)) {
+      if (langTriggers[targetLangId].some((trigger) => cleaned.includes(trigger.toLowerCase()))) {
+        return { type: "language", id: targetLangId };
+      }
     }
   }
 
