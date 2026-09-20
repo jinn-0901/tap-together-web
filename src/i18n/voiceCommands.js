@@ -65,18 +65,49 @@ export const LANGUAGE_TRIGGERS = {
   vi: { ko: ["tiếnghàn"], en: ["tiếnganh"], zh: ["tiếngtrung"], ja: ["tiếngnhật"], vi: ["tiếngviệt"] },
 };
 
-// 부정 표현 — 이 단어들이 들어있으면 명령을 실행하지 않고 무시함 (의도와 반대로 실행되는 사고 방지)
-const NEGATION_WORDS = {
-  ko: ["하지마", "하지말고", "말고", "아니", "안돼", "말아", "지마"],
-  en: ["don't", "donot", "not", "never"],
-  zh: ["不要", "别", "不是"],
-  ja: ["しないで", "やめて", "ではなく"],
-  vi: ["đừng", "không"],
+// "~말고", "~하지 말고", "~아니고" 처럼 "이건 아니고 이거"라는 뜻의 연결어
+// 이 단어들을 기준으로 문장을 나누면, 마지막 조각이 화자가 진짜 원하는 명령일 확률이 높음
+const CUT_MARKERS = {
+  ko: ["말고", "하지말고", "아니고", "대신"],
+  en: ["instead of", "not", "don't", "do not"],
+  zh: ["而不是", "别", "不要"],
+  ja: ["ではなく", "じゃなくて"],
+  vi: ["chứkhông", "khôngphải"],
 };
 
-const containsNegation = (cleaned) => {
-  for (const langKey of Object.keys(NEGATION_WORDS)) {
-    if (NEGATION_WORDS[langKey].some((w) => cleaned.includes(w.replace(/\s/g, "").toLowerCase()))) {
+// 문장을 CUT_MARKERS 기준으로 자르고, 마지막 조각만 남김 (진짜 하려는 말)
+// 자를 지점이 없으면 원문 그대로 반환
+const keepLastClause = (cleaned) => {
+  let result = cleaned;
+  let cutFound = false;
+
+  for (const langKey of Object.keys(CUT_MARKERS)) {
+    for (const marker of CUT_MARKERS[langKey]) {
+      const markerCleaned = marker.replace(/\s/g, "").toLowerCase();
+      const idx = result.lastIndexOf(markerCleaned); // 여러 번 나오면 제일 마지막 것 기준
+      if (idx !== -1) {
+        result = result.slice(idx + markerCleaned.length);
+        cutFound = true;
+      }
+    }
+  }
+
+  return { text: result, cutFound };
+};
+
+// "~하지 마", "~지 마", "~안 돼", "~말아" 처럼 순수하게 "하지 말라"는 뜻으로 끝나는 표현
+// 이 표현이 (자르고 남은) 문장에 있으면, 그 문장 자체가 "하지 말라"는 뜻이므로 명령을 실행하면 안 됨
+const PURE_NEGATION_SUFFIXES = {
+  ko: ["하지마", "지마", "안돼", "말아", "마세요", "말아주세요"],
+  en: ["don'tdoit", "donot", "never"],
+  zh: ["不要", "别"],
+  ja: ["しないで", "やめて"],
+  vi: ["đừng"],
+};
+
+const endsWithPureNegation = (cleaned) => {
+  for (const langKey of Object.keys(PURE_NEGATION_SUFFIXES)) {
+    if (PURE_NEGATION_SUFFIXES[langKey].some((suffix) => cleaned.includes(suffix))) {
       return true;
     }
   }
@@ -95,14 +126,25 @@ const detectAction = (cleaned) => {
 
 // 말한 문장을 분석해서 기능/언어 명령을 찾아냄
 export const matchVoiceCommand = (spokenText) => {
-  const cleaned = spokenText.replace(/\s/g, "").toLowerCase();
+  const original = spokenText.replace(/\s/g, "").toLowerCase();
 
-  // 부정 표현이 섞여 있으면 아예 실행하지 않고 "알아듣지 못함"으로 처리
-  if (containsNegation(cleaned)) {
+  // 1. "~말고", "~아니고" 같은 연결어가 있으면, 그 뒤에 나온 마지막 조각만 실제 명령으로 봄
+  //    예: "영어로 바꾸지 말고 한국어로 바꿔줘" → "한국어로바꿔줘"만 남김
+  const { text: cleaned, cutFound } = keepLastClause(original);
+
+  // 2. 자르고 남은 문장 자체가 "~하지 마" 류로 끝나면, 그 자체가 거부/취소 의미이므로 아무 것도 실행 안 함
+  //    예: "한국어로 바꾸지 마" (연결어 없음, 원문 전체가 부정형) → 무시
+  //    예: "고대비 켜지 말고 끄지 마" (마지막 조각도 부정형) → 무시
+  if (endsWithPureNegation(cleaned)) {
     return null;
   }
 
-  // 1. 기능 이름부터 찾기
+  // 3. 연결어로 잘라냈는데 남은 조각이 텅 비어있으면(예: "~말고"로 문장이 끝난 경우) 실행할 게 없음
+  if (cutFound && cleaned.length === 0) {
+    return null;
+  }
+
+  // 4. 기능 이름 찾기
   let matchedFeature = null;
   for (const langKey of Object.keys(FEATURE_TRIGGERS)) {
     const featureTriggers = FEATURE_TRIGGERS[langKey];
@@ -120,7 +162,7 @@ export const matchVoiceCommand = (spokenText) => {
     return { type: "feature", id: matchedFeature, action: action || "toggle" };
   }
 
-  // 2. 언어 변경 명령 찾기
+  // 5. 언어 변경 명령 찾기
   for (const langKey of Object.keys(LANGUAGE_TRIGGERS)) {
     const langTriggers = LANGUAGE_TRIGGERS[langKey];
     for (const targetLangId of Object.keys(langTriggers)) {
