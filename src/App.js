@@ -159,7 +159,7 @@ export default function App() {
     }
   };
 
-  // 감지된(현재 선택된) 언어 하나로만 듣기 — 더 이상 여러 언어를 순서대로 재시도하지 않음
+  // 브라우저에 설정된 실제 언어로 듣기 (화면 언어와 무관)
   const handleVoiceClick = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -172,7 +172,7 @@ export default function App() {
     cancelledRef.current = false;
 
     const recognition = new SpeechRecognition();
-    recognition.lang = SPEECH_LANG_MAP[selectedLang] || "ko-KR";
+    recognition.lang = navigator.language || SPEECH_LANG_MAP[selectedLang] || "ko-KR";
     recognition.interimResults = true;
     recognitionRef.current = recognition;
 
@@ -218,7 +218,6 @@ export default function App() {
         return;
       }
 
-      // 마이크 권한/하드웨어 문제는 별도 안내, 그 외는 "알아듣지 못함"
       if (
         lastErrorRef.current === "not-allowed" ||
         lastErrorRef.current === "audio-capture" ||
