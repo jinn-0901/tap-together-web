@@ -19,6 +19,7 @@ body {
   padding: 24px;
 }
 
+/* 코드 입력 화면 */
 .connect-card {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
@@ -68,6 +69,7 @@ body {
 .connect-btn:hover:not(:disabled) { transform: translateY(-2px); }
 .connect-btn:disabled { background: rgba(74, 222, 128, 0.25); color: rgba(5, 46, 22, 0.4); cursor: not-allowed; }
 
+/* 기능 버튼 화면 */
 .header { text-align: center; margin-bottom: 40px; }
 .header h1 { font-size: clamp(28px, 4vw, 40px); margin-bottom: 8px; }
 .header p { color: #94a3b8; margin-bottom: 16px; }
@@ -99,6 +101,7 @@ body {
   align-items: start;
 }
 
+/* 기능 카드 (꺼짐 상태 - 기본) */
 .card {
   border: 2px solid rgba(255, 255, 255, 0.08);
   border-radius: 24px;
@@ -116,6 +119,7 @@ body {
 
 .card:hover { transform: translateY(-4px); }
 
+/* 켜짐 상태 */
 .card.on {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-color: transparent;
@@ -133,6 +137,7 @@ body {
 .title { font-size: 18px; font-weight: 700; }
 .desc { font-size: 13px; opacity: 0.75; margin-bottom: 6px; }
 
+/* 스위치 UI */
 .switch {
   width: 44px;
   height: 24px;
@@ -200,7 +205,7 @@ body {
 .lang-options {
   display: flex;
   flex-direction: column;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(0, 0, 0, 0.15);
 }
 
@@ -218,9 +223,30 @@ body {
   transition: background 0.15s ease;
 }
 
-.lang-option:hover { background: rgba(255, 255, 255, 0.1); }
-.lang-option.selected { background: rgba(255, 255, 255, 0.18); font-weight: 700; }
+.lang-option:hover { background: rgba(255, 255, 255, 0.08); }
+.lang-option.selected { background: rgba(255, 255, 255, 0.12); font-weight: 700; }
 
 .lang-flag { font-size: 18px; }
 .lang-label { flex: 1; }
 .lang-check { color: #4ade80; font-weight: 800; }
+
+/* 음성 명령 결과 토스트 */
+.toast {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+  padding: 14px 24px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  animation: toast-in 0.25s ease;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
