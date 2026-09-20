@@ -32,8 +32,8 @@ export default function App() {
   const [toastMsg, setToastMsg] = useState(null);
 
   const matchedRef = useRef(false);
-  const cancelledRef = useRef(false); // 사용자가 직접 닫기를 눌렀는지 추적
-  const recognitionRef = useRef(null); // 지금 실행 중인 recognition 인스턴스
+  const cancelledRef = useRef(false);
+  const recognitionRef = useRef(null);
 
   useEffect(() => {
     const onPopState = () => setConnectedCode(getCodeFromPath());
@@ -153,7 +153,6 @@ export default function App() {
     recognition.onend = () => {
       recognitionRef.current = null;
 
-      // 사용자가 직접 닫기 버튼을 눌렀으면 다음 언어로 재시도하지 않고 그냥 종료
       if (cancelledRef.current) {
         cancelledRef.current = false;
         setListening(false);
@@ -178,25 +177,25 @@ export default function App() {
     recognition.start();
   };
 
-  const handleVoiceClick = async () => {
   // 마이크 권한을 먼저 한 번만 명시적으로 요청 (이후 재시도에서는 다시 안 물어봄)
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    stream.getTracks().forEach((track) => track.stop()); // 권한만 확인하고 스트림은 바로 정리
-  } catch (err) {
-    showToast(t.notSupported);
-    return;
-  }
+  const handleVoiceClick = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((track) => track.stop()); // 권한만 확인하고 스트림은 바로 정리
+    } catch (err) {
+      showToast(t.notSupported);
+      return;
+    }
 
-  const otherLangs = CARD_LANGUAGES.map((l) => l.id).filter((id) => id !== selectedLang);
-  listenWithLangQueue([selectedLang, ...otherLangs]);
-};
+    const otherLangs = CARD_LANGUAGES.map((l) => l.id).filter((id) => id !== selectedLang);
+    listenWithLangQueue([selectedLang, ...otherLangs]);
+  };
 
   // 오버레이의 닫기(✕) 버튼: 지금 듣고 있는 걸 바로 중단
   const handleCancelVoice = () => {
     cancelledRef.current = true;
     if (recognitionRef.current) {
-      recognitionRef.current.abort(); // stop()보다 abort()가 즉시 중단됨
+      recognitionRef.current.abort();
     } else {
       setListening(false);
       setLiveTranscript("");
