@@ -1,4 +1,4 @@
-export default {
+const en = {
   pageTitle: "Kiosk Remote Control",
   connectDesc: "Enter the 6-digit code shown on the kiosk screen",
   codePlaceholder: "e.g. 482913",
@@ -24,3 +24,5 @@ export default {
     "large-text": { title: "Large Text", desc: "Makes the text bigger" },
   },
 };
+
+export default en;
