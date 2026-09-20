@@ -368,14 +368,27 @@ body {
   to { opacity: 1; transform: translate(-50%, 0); }
 }
 
-/* ── 리모컨 화면에도 큰 글자 / 고대비 적용 ── */
+/* ── 큰 글자 모드 (px 고정값으로 확실하게 확대) ── */
+.page.large .header h1 { font-size: 42px !important; }
+.page.large .connect-card h1 { font-size: 30px !important; }
+.page.large .header p,
+.page.large .connect-card p { font-size: 18px !important; }
 
-/* 큰 글자 모드 */
-.page.large { font-size: 1.15em; }
-.page.large .header h1,
-.page.large .connect-card h1 { font-size: 1.2em; }
-.page.large .title { font-size: 1.15em; }
-.page.large .desc { font-size: 1.1em; }
+.page.large .title { font-size: 22px !important; }
+.page.large .desc { font-size: 16px !important; }
+.page.large .status { font-size: 17px !important; }
+.page.large .disconnect-btn { font-size: 16px !important; padding: 10px 18px !important; }
+
+.page.large .connect-box input { font-size: 28px !important; }
+.page.large .connect-box input::placeholder { font-size: 17px !important; }
+.page.large .connect-btn { font-size: 19px !important; padding: 18px !important; }
+
+.page.large .lang-label,
+.page.large .lang-flag { font-size: 18px !important; }
+
+.page.large .state-label { font-size: 14px !important; }
+
+.page.large .toast { font-size: 18px !important; padding: 18px 28px !important; }
 
 /* 고대비 모드 — 검은 배경 + 흰 글씨 + 노란색 강조 */
 .page.high-contrast {
