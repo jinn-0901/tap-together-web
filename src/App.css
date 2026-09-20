@@ -502,3 +502,9 @@ body {
 .page.high-contrast .voice-transcript {
   color: #ffd400;
 }
+.connect-error {
+  margin-top: 14px;
+  color: #f87171;
+  font-size: 14px;
+  font-weight: 600;
+}
