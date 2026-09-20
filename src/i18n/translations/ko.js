@@ -18,7 +18,7 @@ const ko = {
   volumeLabel: "음량",
   featureOnToast: (name) => `${name} 켜짐`,
   featureOffToast: (name) => `${name} 꺼짐`,
-  languageToast: (name) => `언어가 ${name}(으)로 변경됨`,
+  languageToast: (name) => `언어가 ${name}로 변경됨`,
   features: {
     "easy-mode": { title: "쉬운 화면 모드", desc: "그림을 크게 보여주고 안내 그림을 추가해요" },
     voice: { title: "음성 인식", desc: "말로 키오스크를 조작할 수 있어요" },
