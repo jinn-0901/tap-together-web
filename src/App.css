@@ -66,6 +66,12 @@ body {
   cursor: pointer;
   transition: transform 0.15s ease;
 }
+.connect-error {
+  margin-top: 14px;
+  color: #f87171;
+  font-size: 14px;
+  font-weight: 600;
+}
 .connect-btn:hover:not(:disabled) { transform: translateY(-2px); }
 .connect-btn:disabled { background: rgba(74, 222, 128, 0.25); color: rgba(5, 46, 22, 0.4); cursor: not-allowed; }
 
@@ -501,10 +507,4 @@ body {
 }
 .page.high-contrast .voice-transcript {
   color: #ffd400;
-}
-.connect-error {
-  margin-top: 14px;
-  color: #f87171;
-  font-size: 14px;
-  font-weight: 600;
 }
