@@ -4,8 +4,14 @@ import { CARD_LANGUAGES, SPEECH_LANG_MAP, isCardLanguage } from "./i18n/language
 import { TRANSLATIONS } from "./i18n/translations";
 import { matchVoiceCommand } from "./i18n/voiceCommands";
 
-const TOGGLE_FEATURE_IDS = ["easy-mode", "voice", "large-text"];
-const TOGGLE_FEATURE_ICONS = { "easy-mode": "🖼️", voice: "🎙️", "large-text": "🔠" };
+const TOGGLE_FEATURE_IDS = ["easy-mode", "voice", "large-text", "high-contrast", "voice-guide"];
+const TOGGLE_FEATURE_ICONS = {
+  "easy-mode": "🖼️",
+  voice: "🎙️",
+  "large-text": "🔠",
+  "high-contrast": "🌓",
+  "voice-guide": "🔊",
+};
 
 const getCodeFromPath = () => {
   const path = window.location.pathname.replace(/^\/|\/$/g, "");
@@ -31,9 +37,14 @@ export default function App() {
   const [liveTranscript, setLiveTranscript] = useState("");
   const [toastMsg, setToastMsg] = useState(null);
 
+  // 음성 안내 음량 (0 ~ 1)
+  const [volume, setVolume] = useState(0.8);
+
   const matchedRef = useRef(false);
   const cancelledRef = useRef(false);
   const recognitionRef = useRef(null);
+  const voiceGuideRef = useRef(false);
+  const volumeRef = useRef(0.8);
 
   useEffect(() => {
     const onPopState = () => setConnectedCode(getCodeFromPath());
@@ -43,8 +54,30 @@ export default function App() {
 
   const t = TRANSLATIONS[selectedLang] || TRANSLATIONS.en;
 
+  // 음성 안내 on/off, 음량 값을 ref에도 동기화 (콜백 안에서도 최신값 바로 읽기 위함)
+  useEffect(() => {
+    voiceGuideRef.current = !!featureState["voice-guide"];
+  }, [featureState]);
+
+  useEffect(() => {
+    volumeRef.current = volume;
+  }, [volume]);
+
+  // 음성 안내가 켜져 있으면 브라우저 TTS로 문구를 읽어줌
+  const speak = (text) => {
+    if (!voiceGuideRef.current) return;
+    if (!window.speechSynthesis) return;
+
+    window.speechSynthesis.cancel(); // 이전에 읽던 게 있으면 끊고 새로 읽기
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = SPEECH_LANG_MAP[selectedLang] || "ko-KR";
+    utterance.volume = volumeRef.current;
+    window.speechSynthesis.speak(utterance);
+  };
+
   const showToast = (message) => {
     setToastMsg(message);
+    speak(message);
     setTimeout(() => setToastMsg(null), 2500);
   };
 
@@ -70,7 +103,13 @@ export default function App() {
 
   const toggleFeature = (featureId) => {
     setFeatureState((prev) => ({ ...prev, [featureId]: !prev[featureId] }));
-    // socket.emit("toggle-feature", { code: connectedCode, featureId, on: !featureState[featureId] });
+    // 방금 토글된 상태로 안내 문구 읽어주기 (state 반영 전 값을 직접 계산)
+    const willBeOn = !featureState[featureId];
+    const name = t.features[featureId].title;
+    setToastMsg(willBeOn ? t.featureOnToast(name) : t.featureOffToast(name));
+    speak(willBeOn ? t.featureOnToast(name) : t.featureOffToast(name));
+    setTimeout(() => setToastMsg(null), 2500);
+    // socket.emit("toggle-feature", { code: connectedCode, featureId, on: willBeOn });
   };
 
   const handleSelectLang = (lang) => {
@@ -94,11 +133,8 @@ export default function App() {
 
   const applyVoiceMatch = (match) => {
     if (match.type === "feature") {
-      const willBeOn = !featureState[match.id];
-      setFeatureState((prev) => ({ ...prev, [match.id]: willBeOn }));
-      const name = t.features[match.id].title;
-      showToast(willBeOn ? t.featureOnToast(name) : t.featureOffToast(name));
-      // socket.emit("toggle-feature", { code: connectedCode, featureId: match.id, on: willBeOn });
+      toggleFeature(match.id);
+      // socket.emit("toggle-feature", { code: connectedCode, featureId: match.id, on: !featureState[match.id] });
     } else if (match.type === "language") {
       handleVoiceLanguageChange(match.id);
       // socket.emit("set-language", { code: connectedCode, lang: match.id });
@@ -182,7 +218,6 @@ export default function App() {
     listenWithLangQueue([selectedLang, ...otherLangs]);
   };
 
-  // 오버레이의 닫기(✕) 버튼: 지금 듣고 있는 걸 바로 중단
   const handleCancelVoice = () => {
     cancelledRef.current = true;
     if (recognitionRef.current) {
@@ -222,6 +257,7 @@ export default function App() {
 
   // ── 코드 있음: 기능 버튼 화면 ──
   const currentLang = CARD_LANGUAGES.find((l) => l.id === selectedLang);
+  const isVoiceGuideOn = !!featureState["voice-guide"];
 
   return (
     <div className="page">
@@ -282,8 +318,41 @@ export default function App() {
           <span className="desc">{listening ? t.listening : t.features.voice.desc}</span>
         </button>
 
-        {/* 나머지 on/off 기능들 */}
-        {TOGGLE_FEATURE_IDS.filter((id) => id !== "voice").map((id) => {
+        {/* 음성 안내 카드 (켜지면 음량 슬라이더가 같이 나타남) */}
+        <div className={`card ${isVoiceGuideOn ? "on" : ""}`}>
+          <button className="voice-guide-toggle" onClick={() => toggleFeature("voice-guide")}>
+            <div className="card-top">
+              <span className="icon">{TOGGLE_FEATURE_ICONS["voice-guide"]}</span>
+              <span className={`switch ${isVoiceGuideOn ? "on" : ""}`}>
+                <span className="switch-knob" />
+              </span>
+            </div>
+            <span className="title">{t.features["voice-guide"].title}</span>
+            <span className="desc">{t.features["voice-guide"].desc}</span>
+            <span className={`state-label ${isVoiceGuideOn ? "on" : "off"}`}>
+              {isVoiceGuideOn ? t.on : t.off}
+            </span>
+          </button>
+
+          {isVoiceGuideOn && (
+            <div className="volume-row" onClick={(e) => e.stopPropagation()}>
+              <span className="volume-icon">🔉</span>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                value={volume}
+                onChange={(e) => setVolume(Number(e.target.value))}
+                aria-label={t.volumeLabel}
+              />
+              <span className="volume-value">{Math.round(volume * 100)}%</span>
+            </div>
+          )}
+        </div>
+
+        {/* 나머지 on/off 기능들 (쉬운 화면, 큰 글자, 고대비) */}
+        {TOGGLE_FEATURE_IDS.filter((id) => id !== "voice" && id !== "voice-guide").map((id) => {
           const feature = t.features[id];
           const isOn = !!featureState[id];
           return (
