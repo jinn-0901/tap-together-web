@@ -15,6 +15,7 @@ const en = {
   listening: "Listening...",
   notSupported: "This browser doesn't support voice recognition",
   notRecognized: "Command not recognized",
+  volumeLabel: "Volume",
   featureOnToast: (name) => `${name} turned on`,
   featureOffToast: (name) => `${name} turned off`,
   languageToast: (name) => `Language changed to ${name}`,
@@ -22,6 +23,8 @@ const en = {
     "easy-mode": { title: "Easy Screen Mode", desc: "Shows larger images and helpful pictures" },
     voice: { title: "Voice Recognition", desc: "Control the kiosk by speaking" },
     "large-text": { title: "Large Text", desc: "Makes the text bigger" },
+    "high-contrast": { title: "High Contrast Mode", desc: "Increases contrast for better visibility" },
+    "voice-guide": { title: "Voice Guide", desc: "Reads what happens on screen out loud" },
   },
 };
 
