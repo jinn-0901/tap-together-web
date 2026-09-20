@@ -1,138 +1,21 @@
 import { useState, useEffect } from "react";
 import "./App.css";
-
-const LANGUAGES = [
-  { id: "ko", label: "한국어", flag: "🇰🇷" },
-  { id: "en", label: "English", flag: "🇺🇸" },
-  { id: "zh", label: "中文", flag: "🇨🇳" },
-  { id: "ja", label: "日本語", flag: "🇯🇵" },
-  { id: "vi", label: "Tiếng Việt", flag: "🇻🇳" },
-];
-
-// 언어별 화면 텍스트
-const TRANSLATIONS = {
-  ko: {
-    pageTitle: "키오스크 원격 제어",
-    connectDesc: "키오스크 화면에 표시된 6자리 코드를 입력해주세요",
-    codePlaceholder: "예: 482913",
-    connectBtn: "연결",
-    headerDesc: "기능을 눌러서 켜고 끄거나, 언어를 선택하세요",
-    connectedLabel: "연결됨",
-    disconnectBtn: "연결 해제",
-    langTitle: "언어 선택",
-    langDefaultDesc: "원하는 언어로 화면을 바꿔요",
-    selectedSuffix: "선택됨",
-    autoDetectedSuffix: "(자동 감지)",
-    on: "켜짐",
-    off: "꺼짐",
-    features: {
-      "easy-mode": { title: "쉬운 화면 모드", desc: "그림을 크게 보여주고 안내 그림을 추가해요" },
-      voice: { title: "음성 인식", desc: "말로 키오스크를 조작할 수 있어요" },
-      "large-text": { title: "큰 글자", desc: "글씨 크기를 크게 키워요" },
-    },
-  },
-  en: {
-    pageTitle: "Kiosk Remote Control",
-    connectDesc: "Enter the 6-digit code shown on the kiosk screen",
-    codePlaceholder: "e.g. 482913",
-    connectBtn: "Connect",
-    headerDesc: "Tap a feature to turn it on or off, or choose a language",
-    connectedLabel: "Connected",
-    disconnectBtn: "Disconnect",
-    langTitle: "Language",
-    langDefaultDesc: "Change the screen to your preferred language",
-    selectedSuffix: "selected",
-    autoDetectedSuffix: "(auto-detected)",
-    on: "On",
-    off: "Off",
-    features: {
-      "easy-mode": { title: "Easy Screen Mode", desc: "Shows larger images and helpful pictures" },
-      voice: { title: "Voice Recognition", desc: "Control the kiosk by speaking" },
-      "large-text": { title: "Large Text", desc: "Makes the text bigger" },
-    },
-  },
-  zh: {
-    pageTitle: "自助终端远程控制",
-    connectDesc: "请输入自助终端屏幕上显示的6位数代码",
-    codePlaceholder: "例如：482913",
-    connectBtn: "连接",
-    headerDesc: "点击功能即可开启或关闭，或选择语言",
-    connectedLabel: "已连接",
-    disconnectBtn: "断开连接",
-    langTitle: "语言选择",
-    langDefaultDesc: "将屏幕切换为您想要的语言",
-    selectedSuffix: "已选择",
-    autoDetectedSuffix: "（自动检测）",
-    on: "开启",
-    off: "关闭",
-    features: {
-      "easy-mode": { title: "简易屏幕模式", desc: "放大图片并添加引导图示" },
-      voice: { title: "语音识别", desc: "可以用语音操作自助终端" },
-      "large-text": { title: "大字体", desc: "放大文字大小" },
-    },
-  },
-  ja: {
-    pageTitle: "キオスク遠隔操作",
-    connectDesc: "キオスク画面に表示された6桁のコードを入力してください",
-    codePlaceholder: "例：482913",
-    connectBtn: "接続",
-    headerDesc: "機能をタップしてオン/オフを切り替えるか、言語を選択してください",
-    connectedLabel: "接続済み",
-    disconnectBtn: "接続解除",
-    langTitle: "言語選択",
-    langDefaultDesc: "画面を希望の言語に変更します",
-    selectedSuffix: "選択済み",
-    autoDetectedSuffix: "（自動検出）",
-    on: "オン",
-    off: "オフ",
-    features: {
-      "easy-mode": { title: "かんたん画面モード", desc: "絵を大きく表示し、案内図を追加します" },
-      voice: { title: "音声認識", desc: "話しかけてキオスクを操作できます" },
-      "large-text": { title: "大きな文字", desc: "文字サイズを大きくします" },
-    },
-  },
-  vi: {
-    pageTitle: "Điều khiển từ xa Kiosk",
-    connectDesc: "Nhập mã 6 chữ số hiển thị trên màn hình kiosk",
-    codePlaceholder: "VD: 482913",
-    connectBtn: "Kết nối",
-    headerDesc: "Nhấn để bật/tắt tính năng, hoặc chọn ngôn ngữ",
-    connectedLabel: "Đã kết nối",
-    disconnectBtn: "Ngắt kết nối",
-    langTitle: "Chọn ngôn ngữ",
-    langDefaultDesc: "Thay đổi màn hình sang ngôn ngữ bạn muốn",
-    selectedSuffix: "đã chọn",
-    autoDetectedSuffix: "(tự động phát hiện)",
-    on: "Bật",
-    off: "Tắt",
-    features: {
-      "easy-mode": { title: "Chế độ màn hình dễ dùng", desc: "Hiển thị hình ảnh lớn hơn và thêm hình minh họa" },
-      voice: { title: "Nhận diện giọng nói", desc: "Điều khiển kiosk bằng giọng nói" },
-      "large-text": { title: "Chữ lớn", desc: "Phóng to cỡ chữ" },
-    },
-  },
-};
+import { CARD_LANGUAGES, SPEECH_LANG_MAP, isCardLanguage } from "./i18n/languages";
+import { TRANSLATIONS } from "./i18n/translations";
+import { matchVoiceCommand } from "./i18n/voiceCommands";
 
 const TOGGLE_FEATURE_IDS = ["easy-mode", "voice", "large-text"];
-const TOGGLE_FEATURE_ICONS = {
-  "easy-mode": "🖼️",
-  voice: "🎙️",
-  "large-text": "🔠",
-};
+const TOGGLE_FEATURE_ICONS = { "easy-mode": "🖼️", voice: "🎙️", "large-text": "🔠" };
 
-// 경로에서 코드 부분만 추출 (예: "/482913" → "482913")
 const getCodeFromPath = () => {
   const path = window.location.pathname.replace(/^\/|\/$/g, "");
   return /^\d{6}$/.test(path) ? path : null;
 };
 
-// 브라우저 언어 코드(예: "ko-KR", "en-US")를 우리가 쓰는 id로 변환
 const detectBrowserLanguage = () => {
   const browserLang = navigator.language || navigator.userLanguage || "en";
   const langCode = browserLang.split("-")[0].toLowerCase();
-
-  const matched = LANGUAGES.find((l) => l.id === langCode);
-  return matched ? matched.id : "en"; // 지원 안 하는 언어면 영어로 기본값
+  return isCardLanguage(langCode) ? langCode : "en";
 };
 
 export default function App() {
@@ -144,7 +27,9 @@ export default function App() {
   const [autoDetected, setAutoDetected] = useState(true);
   const [langOpen, setLangOpen] = useState(false);
 
-  // 브라우저 뒤로가기/앞으로가기 대응
+  const [listening, setListening] = useState(false);
+  const [toastMsg, setToastMsg] = useState(null);
+
   useEffect(() => {
     const onPopState = () => setConnectedCode(getCodeFromPath());
     window.addEventListener("popstate", onPopState);
@@ -152,6 +37,11 @@ export default function App() {
   }, []);
 
   const t = TRANSLATIONS[selectedLang] || TRANSLATIONS.en;
+
+  const showToast = (message) => {
+    setToastMsg(message);
+    setTimeout(() => setToastMsg(null), 2500);
+  };
 
   const handleCodeChange = (e) => {
     const onlyDigits = e.target.value.replace(/[^0-9]/g, "").slice(0, 6);
@@ -170,6 +60,7 @@ export default function App() {
     setInputCode("");
     setFeatureState({});
     setLangOpen(false);
+    setToastMsg(null);
   };
 
   const toggleFeature = (featureId) => {
@@ -177,11 +68,60 @@ export default function App() {
     // socket.emit("toggle-feature", { code: connectedCode, featureId, on: !featureState[featureId] });
   };
 
+  // 카드에서 직접 언어 선택
   const handleSelectLang = (lang) => {
     setSelectedLang(lang.id);
     setLangOpen(false);
     setAutoDetected(false);
     // socket.emit("set-language", { code: connectedCode, lang: lang.id });
+  };
+
+  // 음성으로 언어 변경 명령이 들어왔을 때 (카드에 있는 5개 언어만 지원)
+  const handleVoiceLanguageChange = (langId) => {
+    if (!isCardLanguage(langId)) {
+      showToast(t.notRecognized);
+      return;
+    }
+    const newT = TRANSLATIONS[langId];
+    setSelectedLang(langId);
+    setAutoDetected(false);
+    const langInfo = CARD_LANGUAGES.find((l) => l.id === langId);
+    showToast(newT.languageToast(langInfo.label));
+  };
+
+  // 음성 인식 실행
+  const handleVoiceClick = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showToast(t.notSupported);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = SPEECH_LANG_MAP[selectedLang] || "ko-KR";
+    recognition.onstart = () => setListening(true);
+    recognition.onend = () => setListening(false);
+    recognition.onresult = (e) => {
+      const spokenText = e.results[0][0].transcript;
+      const match = matchVoiceCommand(spokenText, selectedLang);
+
+      if (!match) {
+        showToast(t.notRecognized);
+        return;
+      }
+
+      if (match.type === "feature") {
+        const willBeOn = !featureState[match.id];
+        setFeatureState((prev) => ({ ...prev, [match.id]: willBeOn }));
+        const name = t.features[match.id].title;
+        showToast(willBeOn ? t.featureOnToast(name) : t.featureOffToast(name));
+        // socket.emit("toggle-feature", { code: connectedCode, featureId: match.id, on: willBeOn });
+      } else if (match.type === "language") {
+        handleVoiceLanguageChange(match.id);
+        // socket.emit("set-language", { code: connectedCode, lang: match.id });
+      }
+    };
+    recognition.start();
   };
 
   // ── 코드 없음: 입력 화면 ──
@@ -212,7 +152,7 @@ export default function App() {
   }
 
   // ── 코드 있음: 기능 버튼 화면 ──
-  const currentLang = LANGUAGES.find((l) => l.id === selectedLang);
+  const currentLang = CARD_LANGUAGES.find((l) => l.id === selectedLang);
 
   return (
     <div className="page">
@@ -226,7 +166,7 @@ export default function App() {
       </header>
 
       <main className="grid">
-        {/* 언어 선택 카드 (드롭다운) */}
+        {/* 언어 선택 카드 (5개 주요 언어) */}
         <div className={`card lang-card ${langOpen ? "expanded" : ""}`}>
           <button className="lang-header" onClick={() => setLangOpen((prev) => !prev)}>
             <div className="card-top">
@@ -245,7 +185,7 @@ export default function App() {
 
           {langOpen && (
             <div className="lang-options">
-              {LANGUAGES.map((lang) => (
+              {CARD_LANGUAGES.map((lang) => (
                 <button
                   key={lang.id}
                   className={`lang-option ${selectedLang === lang.id ? "selected" : ""}`}
@@ -262,8 +202,28 @@ export default function App() {
 
         {/* 나머지 on/off 기능들 */}
         {TOGGLE_FEATURE_IDS.map((id) => {
-          const isOn = !!featureState[id];
           const feature = t.features[id];
+
+          if (id === "voice") {
+            return (
+              <button
+                key={id}
+                className={`card ${listening ? "on" : ""}`}
+                onClick={handleVoiceClick}
+              >
+                <div className="card-top">
+                  <span className="icon">{TOGGLE_FEATURE_ICONS[id]}</span>
+                  <span className={`switch ${listening ? "on" : ""}`}>
+                    <span className="switch-knob" />
+                  </span>
+                </div>
+                <span className="title">{feature.title}</span>
+                <span className="desc">{listening ? t.listening : feature.desc}</span>
+              </button>
+            );
+          }
+
+          const isOn = !!featureState[id];
           return (
             <button
               key={id}
@@ -283,6 +243,8 @@ export default function App() {
           );
         })}
       </main>
+
+      {toastMsg && <p className="toast">{toastMsg}</p>}
     </div>
   );
 }
