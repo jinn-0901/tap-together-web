@@ -33,7 +33,6 @@ export const FEATURE_TRIGGERS = {
 };
 
 // 켜기/끄기 "방향"을 나타내는 단어 — 기능 이름이랑 같이 말했을 때 on/off를 직접 결정함
-// (나중에 "아메리카노 추가해줘" / "수량 빼줘" 같은 명령도 이 구조를 그대로 확장하면 됨)
 export const ACTION_TRIGGERS = {
   ko: {
     on: ["켜줘", "켜라", "켜", "실행해줘", "활성화"],
@@ -66,6 +65,24 @@ export const LANGUAGE_TRIGGERS = {
   vi: { ko: ["tiếnghàn"], en: ["tiếnganh"], zh: ["tiếngtrung"], ja: ["tiếngnhật"], vi: ["tiếngviệt"] },
 };
 
+// 부정 표현 — 이 단어들이 들어있으면 명령을 실행하지 않고 무시함 (의도와 반대로 실행되는 사고 방지)
+const NEGATION_WORDS = {
+  ko: ["하지마", "하지말고", "말고", "아니", "안돼", "말아", "지마"],
+  en: ["don't", "donot", "not", "never"],
+  zh: ["不要", "别", "不是"],
+  ja: ["しないで", "やめて", "ではなく"],
+  vi: ["đừng", "không"],
+};
+
+const containsNegation = (cleaned) => {
+  for (const langKey of Object.keys(NEGATION_WORDS)) {
+    if (NEGATION_WORDS[langKey].some((w) => cleaned.includes(w.replace(/\s/g, "").toLowerCase()))) {
+      return true;
+    }
+  }
+  return false;
+};
+
 // 문장 안에서 방향(켜기/끄기) 단어를 찾아냄. 없으면 null (→ 토글로 처리)
 const detectAction = (cleaned) => {
   for (const langKey of Object.keys(ACTION_TRIGGERS)) {
@@ -79,6 +96,11 @@ const detectAction = (cleaned) => {
 // 말한 문장을 분석해서 기능/언어 명령을 찾아냄
 export const matchVoiceCommand = (spokenText) => {
   const cleaned = spokenText.replace(/\s/g, "").toLowerCase();
+
+  // 부정 표현이 섞여 있으면 아예 실행하지 않고 "알아듣지 못함"으로 처리
+  if (containsNegation(cleaned)) {
+    return null;
+  }
 
   // 1. 기능 이름부터 찾기
   let matchedFeature = null;
