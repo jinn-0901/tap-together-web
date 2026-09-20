@@ -15,6 +15,7 @@ const vi = {
   listening: "Đang nghe...",
   notSupported: "Trình duyệt này không hỗ trợ nhận dạng giọng nói",
   notRecognized: "Không nhận dạng được lệnh",
+  volumeLabel: "Âm lượng",
   featureOnToast: (name) => `${name} đã bật`,
   featureOffToast: (name) => `${name} đã tắt`,
   languageToast: (name) => `Đã đổi ngôn ngữ sang ${name}`,
@@ -22,6 +23,8 @@ const vi = {
     "easy-mode": { title: "Chế độ màn hình dễ dùng", desc: "Hiển thị hình ảnh lớn hơn và thêm hình minh họa" },
     voice: { title: "Nhận diện giọng nói", desc: "Điều khiển kiosk bằng giọng nói" },
     "large-text": { title: "Chữ lớn", desc: "Phóng to cỡ chữ" },
+    "high-contrast": { title: "Chế độ tương phản cao", desc: "Tăng độ tương phản để dễ nhìn hơn" },
+    "voice-guide": { title: "Hướng dẫn bằng giọng nói", desc: "Đọc to những gì xảy ra trên màn hình" },
   },
 };
 
