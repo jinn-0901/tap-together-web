@@ -178,10 +178,19 @@ export default function App() {
     recognition.start();
   };
 
-  const handleVoiceClick = () => {
-    const otherLangs = CARD_LANGUAGES.map((l) => l.id).filter((id) => id !== selectedLang);
-    listenWithLangQueue([selectedLang, ...otherLangs]);
-  };
+  const handleVoiceClick = async () => {
+  // 마이크 권한을 먼저 한 번만 명시적으로 요청 (이후 재시도에서는 다시 안 물어봄)
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach((track) => track.stop()); // 권한만 확인하고 스트림은 바로 정리
+  } catch (err) {
+    showToast(t.notSupported);
+    return;
+  }
+
+  const otherLangs = CARD_LANGUAGES.map((l) => l.id).filter((id) => id !== selectedLang);
+  listenWithLangQueue([selectedLang, ...otherLangs]);
+};
 
   // 오버레이의 닫기(✕) 버튼: 지금 듣고 있는 걸 바로 중단
   const handleCancelVoice = () => {
