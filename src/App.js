@@ -73,6 +73,7 @@ export default function App() {
   const lastErrorRef = useRef(null);
   const voiceGuideRef = useRef(false);
   const volumeRef = useRef(savedSettings?.volume ?? 0.8);
+  const joinedRef = useRef(false); // URL로 바로 들어왔을 때 방 참가를 딱 한 번만 보내기 위한 플래그
 
   useEffect(() => {
     const onPopState = () => setConnectedCode(getCodeFromPath());
@@ -92,12 +93,14 @@ export default function App() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
-  // 페이지 로드 시 URL에 코드가 있으면(QR 스캔) 자동으로 서버에 참가
+  // 페이지 로드 시 URL에 코드가 있으면(QR 스캔) 자동으로 서버에 참가.
+  // joinedRef로 이미 보냈는지 기억해서, connectedCode가 다시 바뀌어도 여기선 중복 실행되지 않음
   useEffect(() => {
-    if (connectedCode) {
+    if (connectedCode && !joinedRef.current) {
       socket.emit("join-room", connectedCode);
+      joinedRef.current = true;
     }
-  }, []); // 최초 1회만
+  }, [connectedCode]);
 
   const t = TRANSLATIONS[selectedLang] || TRANSLATIONS.en;
 
@@ -141,6 +144,7 @@ export default function App() {
     window.history.pushState({}, "", `/${inputCode}`);
     setConnectedCode(inputCode);
     socket.emit("join-room", inputCode);
+    joinedRef.current = true; // 여기서 직접 보냈으니 useEffect가 또 보내지 않도록 표시
   };
 
   const handleDisconnect = () => {
@@ -149,6 +153,7 @@ export default function App() {
     setInputCode("");
     setLangOpen(false);
     setToastMsg(null);
+    joinedRef.current = false; // 다음 연결을 위해 초기화
   };
 
   const toggleFeature = (featureId) => {
