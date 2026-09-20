@@ -23,6 +23,22 @@ const en = {
     voice: { title: "Voice Recognition", desc: "Control the kiosk by speaking" },
     "large-text": { title: "Large Text", desc: "Makes the text bigger" },
   },
+  categories: {
+    coffee: "☕ Coffee",
+    latte: "🥛 Latte",
+    tea: "🍵 Tea",
+    ade: "🍹 Ade",
+  },
+  menu: {
+    americano: "Americano",
+    "cafe-latte": "Cafe Latte",
+    "strawberry-latte": "Strawberry Latte",
+    "choco-latte": "Choco Latte",
+    "green-tea": "Green Tea",
+    "yuja-tea": "Yuja Tea",
+    "iced-tea": "Iced Tea",
+    lemonade: "Lemonade",
+  },
 };
 
 export default en;
