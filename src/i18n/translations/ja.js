@@ -23,6 +23,22 @@ const ja = {
     voice: { title: "音声認識", desc: "話しかけてキオスクを操作できます" },
     "large-text": { title: "大きな文字", desc: "文字サイズを大きくします" },
   },
+  categories: {
+    coffee: "☕ コーヒー",
+    latte: "🥛 ラテ",
+    tea: "🍵 お茶",
+    ade: "🍹 エード",
+  },
+  menu: {
+    americano: "アメリカーノ",
+    "cafe-latte": "カフェラテ",
+    "strawberry-latte": "ストロベリーラテ",
+    "choco-latte": "チョコラテ",
+    "green-tea": "緑茶",
+    "yuja-tea": "ゆず茶",
+    "iced-tea": "アイスティー",
+    lemonade: "レモネード",
+  },
 };
 
 export default ja;
