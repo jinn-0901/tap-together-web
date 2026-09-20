@@ -1,4 +1,4 @@
-export default {
+const ja = {
   pageTitle: "キオスク遠隔操作",
   connectDesc: "キオスク画面に表示された6桁のコードを入力してください",
   codePlaceholder: "例：482913",
@@ -24,3 +24,5 @@ export default {
     "large-text": { title: "大きな文字", desc: "文字サイズを大きくします" },
   },
 };
+
+export default ja;
