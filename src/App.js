@@ -77,11 +77,16 @@ export default function App() {
   const voiceGuideRef = useRef(false);
   const volumeRef = useRef(savedSettings?.volume ?? 0.8);
   const pendingCodeRef = useRef(null);
-  const connectedCodeRef = useRef(null); // leave-room 보낼 때 최신 코드를 읽기 위함
+  const connectedCodeRef = useRef(null);
+  const selectedLangRef = useRef(selectedLang);
 
   useEffect(() => {
     connectedCodeRef.current = connectedCode;
   }, [connectedCode]);
+
+  useEffect(() => {
+    selectedLangRef.current = selectedLang;
+  }, [selectedLang]);
 
   useEffect(() => {
     const onPopState = () => {
@@ -106,7 +111,6 @@ export default function App() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
-  // 탭을 닫거나 새로고침하기 직전, 서버에 방을 떠난다고 최대한 알림 (베스트 에포트)
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (connectedCodeRef.current) {
@@ -117,7 +121,7 @@ export default function App() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
-  // 서버의 join-room 응답 처리
+  // 서버 응답 처리 (참가 성공/실패, 키오스크 코드 갱신, 키오스크 활동 안내)
   useEffect(() => {
     const onJoined = (code) => {
       if (pendingCodeRef.current !== code) return;
@@ -125,6 +129,8 @@ export default function App() {
       setConnecting(false);
       setConnectError(null);
       window.history.pushState({}, "", `/${code}`);
+      // 연결되자마자 내 언어를 키오스크에게 바로 보냄
+      socket.emit("set-language", { code, lang: selectedLangRef.current });
     };
 
     const onJoinError = (message) => {
@@ -139,6 +145,12 @@ export default function App() {
       setConnecting(false);
     };
 
+    // 키오스크가 코드를 갱신해도 리모컨 연결은 유지 — URL과 코드만 조용히 갱신
+    const onKioskCodeChanged = ({ code }) => {
+      setConnectedCode(code);
+      window.history.pushState({}, "", `/${code}`);
+    };
+
     const onKioskActivity = ({ message, langId }) => {
       speak(message, langId);
     };
@@ -146,12 +158,14 @@ export default function App() {
     socket.on("joined", onJoined);
     socket.on("join-error", onJoinError);
     socket.on("kiosk-left", onKioskLeft);
+    socket.on("kiosk-code-changed", onKioskCodeChanged);
     socket.on("kiosk-activity", onKioskActivity);
 
     return () => {
       socket.off("joined", onJoined);
       socket.off("join-error", onJoinError);
       socket.off("kiosk-left", onKioskLeft);
+      socket.off("kiosk-code-changed", onKioskCodeChanged);
       socket.off("kiosk-activity", onKioskActivity);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -178,7 +192,6 @@ export default function App() {
     saveSettings({ featureState, selectedLang, volume });
   }, [featureState, selectedLang, volume]);
 
-  // 사파리는 cancel() 직후 바로 speak()하면 소리가 씹히는 버그가 있어서 살짝 텀을 줌
   const speak = (text, langId) => {
     if (!voiceGuideRef.current) return;
     if (!window.speechSynthesis) return;
@@ -212,7 +225,6 @@ export default function App() {
     socket.emit("join-room", inputCode);
   };
 
-  // 이제 서버에게도 명확히 "나갈게"라고 알림 — 이게 재연결 문제의 핵심 수정
   const handleDisconnect = () => {
     if (connectedCode) {
       socket.emit("leave-room", connectedCode);
