@@ -15,6 +15,7 @@ const ko = {
   listening: "듣고 있어요...",
   notSupported: "이 브라우저는 음성 인식을 지원하지 않아요",
   notRecognized: "명령을 알아듣지 못했어요",
+  volumeLabel: "음량",
   featureOnToast: (name) => `${name} 켜짐`,
   featureOffToast: (name) => `${name} 꺼짐`,
   languageToast: (name) => `언어가 ${name}(으)로 변경됨`,
@@ -22,6 +23,8 @@ const ko = {
     "easy-mode": { title: "쉬운 화면 모드", desc: "그림을 크게 보여주고 안내 그림을 추가해요" },
     voice: { title: "음성 인식", desc: "말로 키오스크를 조작할 수 있어요" },
     "large-text": { title: "큰 글자", desc: "글씨 크기를 크게 키워요" },
+    "high-contrast": { title: "고대비 모드", desc: "명암 대비를 높여서 더 잘 보이게 해요" },
+    "voice-guide": { title: "음성 안내", desc: "화면에서 일어나는 일을 소리로 읽어줘요" },
   },
 };
 
