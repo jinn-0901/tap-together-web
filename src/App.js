@@ -103,7 +103,7 @@ export default function App() {
     recognition.onend = () => setListening(false);
     recognition.onresult = (e) => {
       const spokenText = e.results[0][0].transcript;
-      const match = matchVoiceCommand(spokenText, selectedLang);
+      const match = matchVoiceCommand(spokenText); // 언어 상관없이 전체 트리거 검색
 
       if (!match) {
         showToast(t.notRecognized);
