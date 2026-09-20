@@ -147,7 +147,7 @@ body {
   50% { transform: scale(1.15); opacity: 0.7; }
 }
 
-/* 스위치 UI (나머지 토글 기능용) */
+/* 스위치 UI */
 .switch {
   width: 44px;
   height: 24px;
@@ -184,7 +184,7 @@ body {
 .state-label.off { background: rgba(255, 255, 255, 0.08); color: #94a3b8; }
 .state-label.on { background: rgba(255, 255, 255, 0.2); color: #f0fdf4; }
 
-/* 언어 선택 카드 (드롭다운) */
+/* 언어 선택 카드 */
 .lang-card {
   padding: 0;
   overflow: hidden;
@@ -253,6 +253,7 @@ body {
 }
 
 .voice-box {
+  position: relative;
   background: #1c1a2e;
   padding: 44px 56px;
   border-radius: 28px;
@@ -261,6 +262,25 @@ body {
   max-width: 480px;
   width: 100%;
 }
+
+.voice-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+.voice-close-btn:hover { background: rgba(255, 255, 255, 0.16); }
 
 .mic-pulse {
   font-size: 56px;
