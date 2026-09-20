@@ -15,6 +15,7 @@ const ja = {
   listening: "聞いています...",
   notSupported: "このブラウザは音声認識に対応していません",
   notRecognized: "コマンドを認識できませんでした",
+  volumeLabel: "音量",
   featureOnToast: (name) => `${name}オン`,
   featureOffToast: (name) => `${name}オフ`,
   languageToast: (name) => `言語が${name}に変更されました`,
@@ -22,6 +23,8 @@ const ja = {
     "easy-mode": { title: "かんたん画面モード", desc: "絵を大きく表示し、案内図を追加します" },
     voice: { title: "音声認識", desc: "話しかけてキオスクを操作できます" },
     "large-text": { title: "大きな文字", desc: "文字サイズを大きくします" },
+    "high-contrast": { title: "高コントラストモード", desc: "コントラストを上げて見やすくします" },
+    "voice-guide": { title: "音声ガイド", desc: "画面の内容を音声で読み上げます" },
   },
 };
 
