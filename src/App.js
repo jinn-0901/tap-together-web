@@ -37,12 +37,12 @@ export default function App() {
   const [liveTranscript, setLiveTranscript] = useState("");
   const [toastMsg, setToastMsg] = useState(null);
 
-  // 음성 안내 음량 (0 ~ 1)
   const [volume, setVolume] = useState(0.8);
 
   const matchedRef = useRef(false);
   const cancelledRef = useRef(false);
   const recognitionRef = useRef(null);
+  const lastErrorRef = useRef(null);
   const voiceGuideRef = useRef(false);
   const volumeRef = useRef(0.8);
 
@@ -52,9 +52,20 @@ export default function App() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
+  // 탭이 백그라운드로 가면 듣기 중단 (브라우저가 백그라운드 탭 마이크를 끊어버려서 방치하면 오작동함)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && recognitionRef.current) {
+        cancelledRef.current = true;
+        recognitionRef.current.abort();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
+
   const t = TRANSLATIONS[selectedLang] || TRANSLATIONS.en;
 
-  // 음성 안내 on/off, 음량 값을 ref에도 동기화 (콜백 안에서도 최신값 바로 읽기 위함)
   useEffect(() => {
     voiceGuideRef.current = !!featureState["voice-guide"];
   }, [featureState]);
@@ -63,21 +74,21 @@ export default function App() {
     volumeRef.current = volume;
   }, [volume]);
 
-  // 음성 안내가 켜져 있으면 브라우저 TTS로 문구를 읽어줌
-  const speak = (text) => {
+  // 음성 안내가 켜져 있으면 브라우저 TTS로 읽어줌. langId를 넘기면 그 언어 발음으로 읽음
+  const speak = (text, langId) => {
     if (!voiceGuideRef.current) return;
     if (!window.speechSynthesis) return;
 
-    window.speechSynthesis.cancel(); // 이전에 읽던 게 있으면 끊고 새로 읽기
+    window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = SPEECH_LANG_MAP[selectedLang] || "ko-KR";
+    utterance.lang = SPEECH_LANG_MAP[langId || selectedLang] || "ko-KR";
     utterance.volume = volumeRef.current;
     window.speechSynthesis.speak(utterance);
   };
 
-  const showToast = (message) => {
+  const showToast = (message, langId) => {
     setToastMsg(message);
-    speak(message);
+    speak(message, langId);
     setTimeout(() => setToastMsg(null), 2500);
   };
 
@@ -102,20 +113,20 @@ export default function App() {
   };
 
   const toggleFeature = (featureId) => {
-    setFeatureState((prev) => ({ ...prev, [featureId]: !prev[featureId] }));
-    // 방금 토글된 상태로 안내 문구 읽어주기 (state 반영 전 값을 직접 계산)
     const willBeOn = !featureState[featureId];
+    setFeatureState((prev) => ({ ...prev, [featureId]: willBeOn }));
     const name = t.features[featureId].title;
-    setToastMsg(willBeOn ? t.featureOnToast(name) : t.featureOffToast(name));
-    speak(willBeOn ? t.featureOnToast(name) : t.featureOffToast(name));
-    setTimeout(() => setToastMsg(null), 2500);
+    showToast(willBeOn ? t.featureOnToast(name) : t.featureOffToast(name));
     // socket.emit("toggle-feature", { code: connectedCode, featureId, on: willBeOn });
   };
 
+  // 카드로 직접 언어 선택 — 음성 안내도 같이 읽어줌 (새 언어 발음으로)
   const handleSelectLang = (lang) => {
+    const newT = TRANSLATIONS[lang.id];
     setSelectedLang(lang.id);
     setLangOpen(false);
     setAutoDetected(false);
+    showToast(newT.languageToast(lang.label), lang.id);
     // socket.emit("set-language", { code: connectedCode, lang: lang.id });
   };
 
@@ -128,39 +139,40 @@ export default function App() {
     setSelectedLang(langId);
     setAutoDetected(false);
     const langInfo = CARD_LANGUAGES.find((l) => l.id === langId);
-    showToast(newT.languageToast(langInfo.label));
+    showToast(newT.languageToast(langInfo.label), langId);
+    // socket.emit("set-language", { code: connectedCode, lang: langId });
   };
 
   const applyVoiceMatch = (match) => {
     if (match.type === "feature") {
-      toggleFeature(match.id);
-      // socket.emit("toggle-feature", { code: connectedCode, featureId: match.id, on: !featureState[match.id] });
+      let willBeOn;
+      if (match.action === "on") willBeOn = true;
+      else if (match.action === "off") willBeOn = false;
+      else willBeOn = !featureState[match.id]; // 방향 단어가 없었으면 토글
+
+      setFeatureState((prev) => ({ ...prev, [match.id]: willBeOn }));
+      const name = t.features[match.id].title;
+      showToast(willBeOn ? t.featureOnToast(name) : t.featureOffToast(name));
+      // socket.emit("toggle-feature", { code: connectedCode, featureId: match.id, on: willBeOn });
     } else if (match.type === "language") {
       handleVoiceLanguageChange(match.id);
-      // socket.emit("set-language", { code: connectedCode, lang: match.id });
     }
   };
 
-  const listenWithLangQueue = (langQueue) => {
-    if (langQueue.length === 0) {
-      setListening(false);
-      setLiveTranscript("");
-      showToast(t.notRecognized);
-      return;
-    }
-
+  // 감지된(현재 선택된) 언어 하나로만 듣기 — 더 이상 여러 언어를 순서대로 재시도하지 않음
+  const handleVoiceClick = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      setListening(false);
       showToast(t.notSupported);
       return;
     }
 
-    const [currentLangId, ...restQueue] = langQueue;
     matchedRef.current = false;
+    lastErrorRef.current = null;
+    cancelledRef.current = false;
 
     const recognition = new SpeechRecognition();
-    recognition.lang = SPEECH_LANG_MAP[currentLangId] || "ko-KR";
+    recognition.lang = SPEECH_LANG_MAP[selectedLang] || "ko-KR";
     recognition.interimResults = true;
     recognitionRef.current = recognition;
 
@@ -186,36 +198,40 @@ export default function App() {
       }
     };
 
+    recognition.onerror = (e) => {
+      lastErrorRef.current = e.error;
+    };
+
     recognition.onend = () => {
       recognitionRef.current = null;
+      setListening(false);
+      setLiveTranscript("");
 
       if (cancelledRef.current) {
         cancelledRef.current = false;
-        setListening(false);
-        setLiveTranscript("");
+        lastErrorRef.current = null;
         return;
       }
 
       if (matchedRef.current) {
-        setListening(false);
-        setLiveTranscript("");
-      } else {
-        listenWithLangQueue(restQueue);
+        lastErrorRef.current = null;
+        return;
       }
-    };
 
-    recognition.onerror = () => {
-      if (!cancelledRef.current) {
-        listenWithLangQueue(restQueue);
+      // 마이크 권한/하드웨어 문제는 별도 안내, 그 외는 "알아듣지 못함"
+      if (
+        lastErrorRef.current === "not-allowed" ||
+        lastErrorRef.current === "audio-capture" ||
+        lastErrorRef.current === "service-not-allowed"
+      ) {
+        showToast(t.notSupported);
+      } else {
+        showToast(t.notRecognized);
       }
+      lastErrorRef.current = null;
     };
 
     recognition.start();
-  };
-
-  const handleVoiceClick = () => {
-    const otherLangs = CARD_LANGUAGES.map((l) => l.id).filter((id) => id !== selectedLang);
-    listenWithLangQueue([selectedLang, ...otherLangs]);
   };
 
   const handleCancelVoice = () => {
