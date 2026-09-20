@@ -1,4 +1,4 @@
-export default {
+const ko = {
   pageTitle: "키오스크 원격 제어",
   connectDesc: "키오스크 화면에 표시된 6자리 코드를 입력해주세요",
   codePlaceholder: "예: 482913",
@@ -24,3 +24,5 @@ export default {
     "large-text": { title: "큰 글자", desc: "글씨 크기를 크게 키워요" },
   },
 };
+
+export default ko;
