@@ -169,7 +169,10 @@ export default function App() {
     cancelledRef.current = false;
 
     const recognition = new SpeechRecognition();
-    recognition.lang = navigator.language || SPEECH_LANG_MAP[selectedLang] || "ko-KR";
+    // 화면 언어 감지랑 똑같은 규칙: 5개 지원 언어 밖이면 영어로 (음성 인식도 화면에 보이는 언어랑 맞춰줌)
+    const browserLangCode = (navigator.language || "en").split("-")[0].toLowerCase();
+    const speechLangId = isCardLanguage(browserLangCode) ? browserLangCode : "en";
+    recognition.lang = SPEECH_LANG_MAP[speechLangId] || "en-US";
     recognition.interimResults = true;
     recognitionRef.current = recognition;
 
