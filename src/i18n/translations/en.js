@@ -23,4 +23,4 @@ export default {
     voice: { title: "Voice Recognition", desc: "Control the kiosk by speaking" },
     "large-text": { title: "Large Text", desc: "Makes the text bigger" },
   },
-};#
+};
