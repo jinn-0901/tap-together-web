@@ -369,26 +369,35 @@ body {
 }
 
 /* ── 큰 글자 모드 (px 고정값으로 확실하게 확대) ── */
-.page.large .header h1 { font-size: 42px !important; }
-.page.large .connect-card h1 { font-size: 30px !important; }
+.page.large .header h1 { font-size: 52px !important; }
+.page.large .connect-card h1 { font-size: 38px !important; }
 .page.large .header p,
-.page.large .connect-card p { font-size: 18px !important; }
+.page.large .connect-card p { font-size: 24px !important; }
 
-.page.large .title { font-size: 22px !important; }
-.page.large .desc { font-size: 16px !important; }
-.page.large .status { font-size: 17px !important; }
-.page.large .disconnect-btn { font-size: 16px !important; padding: 10px 18px !important; }
+.page.large .title { font-size: 30px !important; }
+.page.large .desc { font-size: 22px !important; }
+.page.large .status { font-size: 22px !important; padding: 10px 20px !important; }
+.page.large .disconnect-btn { font-size: 20px !important; padding: 14px 24px !important; }
 
-.page.large .connect-box input { font-size: 28px !important; }
-.page.large .connect-box input::placeholder { font-size: 17px !important; }
-.page.large .connect-btn { font-size: 19px !important; padding: 18px !important; }
+.page.large .connect-box input { font-size: 36px !important; padding: 22px !important; }
+.page.large .connect-box input::placeholder { font-size: 22px !important; }
+.page.large .connect-btn { font-size: 24px !important; padding: 22px !important; }
 
 .page.large .lang-label,
-.page.large .lang-flag { font-size: 18px !important; }
+.page.large .lang-flag { font-size: 24px !important; }
+.page.large .lang-header { padding: 32px 26px !important; }
+.page.large .lang-option { padding: 18px 26px !important; }
 
-.page.large .state-label { font-size: 14px !important; }
+.page.large .state-label { font-size: 18px !important; padding: 5px 14px !important; }
 
-.page.large .toast { font-size: 18px !important; padding: 18px 28px !important; }
+.page.large .toast { font-size: 24px !important; padding: 22px 32px !important; }
+
+.page.large .icon { font-size: 44px !important; }
+.page.large .switch { width: 56px !important; height: 30px !important; }
+.page.large .switch-knob { width: 22px !important; height: 22px !important; }
+.page.large .switch.on .switch-knob { transform: translateX(26px) !important; }
+
+.page.large .card { padding: 32px 26px !important; }
 
 /* 고대비 모드 — 검은 배경 + 흰 글씨 + 노란색 강조 */
 .page.high-contrast {
