@@ -367,3 +367,116 @@ body {
   from { opacity: 0; transform: translate(-50%, 20px); }
   to { opacity: 1; transform: translate(-50%, 0); }
 }
+
+/* ── 리모컨 화면에도 큰 글자 / 고대비 적용 ── */
+
+/* 큰 글자 모드 */
+.page.large { font-size: 1.15em; }
+.page.large .header h1,
+.page.large .connect-card h1 { font-size: 1.2em; }
+.page.large .title { font-size: 1.15em; }
+.page.large .desc { font-size: 1.1em; }
+
+/* 고대비 모드 — 검은 배경 + 흰 글씨 + 노란색 강조 */
+.page.high-contrast {
+  background: #000000;
+}
+
+.page.high-contrast .header p,
+.page.high-contrast .connect-card p,
+.page.high-contrast .desc,
+.page.high-contrast .status,
+.page.high-contrast .disconnect-btn {
+  color: #ffffff;
+}
+
+.page.high-contrast .connect-card {
+  background: #000000;
+  border: 3px solid #ffffff;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.page.high-contrast .connect-box input {
+  background: #000000;
+  border: 2px solid #ffffff;
+  color: #ffffff;
+}
+
+.page.high-contrast .connect-btn {
+  background: #ffd400;
+  color: #000000;
+  border: 2px solid #ffd400;
+}
+.page.high-contrast .connect-btn:disabled {
+  background: #333333;
+  color: #888888;
+  border-color: #555555;
+}
+
+.page.high-contrast .card {
+  background: #000000;
+  border: 2px solid #ffffff;
+  color: #ffffff;
+}
+
+.page.high-contrast .card.on {
+  background: #1a1a1a;
+  border: 3px solid #ffd400;
+}
+
+.page.high-contrast .switch {
+  background: #333333;
+  border: 1px solid #ffffff;
+}
+.page.high-contrast .switch.on {
+  background: #ffd400;
+}
+.page.high-contrast .switch-knob {
+  background: #000000;
+}
+
+.page.high-contrast .state-label.off {
+  background: #000000;
+  border: 1px solid #ffffff;
+  color: #ffffff;
+}
+.page.high-contrast .state-label.on {
+  background: #ffd400;
+  color: #000000;
+}
+
+.page.high-contrast .lang-card,
+.page.high-contrast .lang-options {
+  background: #000000;
+  border-color: #ffffff;
+}
+.page.high-contrast .lang-option:hover {
+  background: #1a1a1a;
+}
+.page.high-contrast .lang-option.selected {
+  background: #ffd400;
+  color: #000000;
+}
+.page.high-contrast .lang-check {
+  color: #000000;
+}
+
+.page.high-contrast .disconnect-btn {
+  border: 2px solid #ffffff;
+  background: #000000;
+}
+
+.page.high-contrast .toast {
+  background: #000000;
+  border: 2px solid #ffd400;
+  color: #ffd400;
+}
+
+.page.high-contrast .voice-box {
+  background: #000000;
+  border: 3px solid #ffffff;
+}
+.page.high-contrast .voice-transcript {
+  color: #ffd400;
+}
