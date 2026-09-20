@@ -15,6 +15,7 @@ const zh = {
   listening: "正在聆听...",
   notSupported: "此浏览器不支持语音识别",
   notRecognized: "无法识别指令",
+  volumeLabel: "音量",
   featureOnToast: (name) => `${name}已开启`,
   featureOffToast: (name) => `${name}已关闭`,
   languageToast: (name) => `语言已切换为${name}`,
@@ -22,6 +23,8 @@ const zh = {
     "easy-mode": { title: "简易屏幕模式", desc: "放大图片并添加引导图示" },
     voice: { title: "语音识别", desc: "可以用语音操作自助终端" },
     "large-text": { title: "大字体", desc: "放大文字大小" },
+    "high-contrast": { title: "高对比度模式", desc: "提高对比度，看得更清楚" },
+    "voice-guide": { title: "语音导览", desc: "用声音读出屏幕上发生的事情" },
   },
 };
 
