@@ -52,7 +52,7 @@ export default function App() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  // 탭이 백그라운드로 가면 듣기 중단 (브라우저가 백그라운드 탭 마이크를 끊어버려서 방치하면 오작동함)
+  // 탭이 백그라운드로 가면 듣기 중단
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden && recognitionRef.current) {
@@ -74,7 +74,6 @@ export default function App() {
     volumeRef.current = volume;
   }, [volume]);
 
-  // 음성 안내가 켜져 있으면 브라우저 TTS로 읽어줌. langId를 넘기면 그 언어 발음으로 읽음
   const speak = (text, langId) => {
     if (!voiceGuideRef.current) return;
     if (!window.speechSynthesis) return;
@@ -120,7 +119,6 @@ export default function App() {
     // socket.emit("toggle-feature", { code: connectedCode, featureId, on: willBeOn });
   };
 
-  // 카드로 직접 언어 선택 — 음성 안내도 같이 읽어줌 (새 언어 발음으로)
   const handleSelectLang = (lang) => {
     const newT = TRANSLATIONS[lang.id];
     setSelectedLang(lang.id);
@@ -148,7 +146,7 @@ export default function App() {
       let willBeOn;
       if (match.action === "on") willBeOn = true;
       else if (match.action === "off") willBeOn = false;
-      else willBeOn = !featureState[match.id]; // 방향 단어가 없었으면 토글
+      else willBeOn = !featureState[match.id];
 
       setFeatureState((prev) => ({ ...prev, [match.id]: willBeOn }));
       const name = t.features[match.id].title;
@@ -159,7 +157,6 @@ export default function App() {
     }
   };
 
-  // 브라우저에 설정된 실제 언어로 듣기 (화면 언어와 무관)
   const handleVoiceClick = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -243,10 +240,15 @@ export default function App() {
     }
   };
 
+  // 화면 전체에 적용할 클래스 (큰 글자 / 고대비) — 코드 입력 화면, 기능 화면 둘 다 공통으로 사용
+  const isLargeText = !!featureState["large-text"];
+  const isHighContrast = !!featureState["high-contrast"];
+  const pageClass = `page ${isLargeText ? "large" : ""} ${isHighContrast ? "high-contrast" : ""}`.trim();
+
   // ── 코드 없음: 입력 화면 ──
   if (!connectedCode) {
     return (
-      <div className="page center">
+      <div className={`${pageClass} center`}>
         <div className="connect-card">
           <h1>{t.pageTitle}</h1>
           <p>{t.connectDesc}</p>
@@ -275,7 +277,7 @@ export default function App() {
   const isVoiceGuideOn = !!featureState["voice-guide"];
 
   return (
-    <div className="page">
+    <div className={pageClass}>
       <header className="header">
         <h1>{t.pageTitle}</h1>
         <p>{t.headerDesc}</p>
@@ -333,7 +335,7 @@ export default function App() {
           <span className="desc">{listening ? t.listening : t.features.voice.desc}</span>
         </button>
 
-        {/* 음성 안내 카드 (켜지면 음량 슬라이더가 같이 나타남) */}
+        {/* 음성 안내 카드 */}
         <div className={`card ${isVoiceGuideOn ? "on" : ""}`}>
           <button className="voice-guide-toggle" onClick={() => toggleFeature("voice-guide")}>
             <div className="card-top">
@@ -390,7 +392,6 @@ export default function App() {
         })}
       </main>
 
-      {/* 듣고 있는 동안 뜨는 오버레이 */}
       {listening && (
         <div className="voice-overlay">
           <div className="voice-box">
