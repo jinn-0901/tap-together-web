@@ -23,6 +23,22 @@ const vi = {
     voice: { title: "Nhận diện giọng nói", desc: "Điều khiển kiosk bằng giọng nói" },
     "large-text": { title: "Chữ lớn", desc: "Phóng to cỡ chữ" },
   },
+  categories: {
+    coffee: "☕ Cà phê",
+    latte: "🥛 Latte",
+    tea: "🍵 Trà",
+    ade: "🍹 Soda",
+  },
+  menu: {
+    americano: "Americano",
+    "cafe-latte": "Cafe Latte",
+    "strawberry-latte": "Latte Dâu",
+    "choco-latte": "Latte Socola",
+    "green-tea": "Trà Xanh",
+    "yuja-tea": "Trà Yuja",
+    "iced-tea": "Trà Đá",
+    lemonade: "Nước Chanh",
+  },
 };
 
 export default vi;
