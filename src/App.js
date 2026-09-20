@@ -3,6 +3,10 @@ import "./App.css";
 import { CARD_LANGUAGES, SPEECH_LANG_MAP, isCardLanguage } from "./i18n/languages";
 import { TRANSLATIONS } from "./i18n/translations";
 import { matchVoiceCommand } from "./i18n/voiceCommands";
+import { io } from "socket.io-client";
+
+const SERVER_URL = process.env.REACT_APP_SERVER_URL || "http://localhost:4000";
+const socket = io(SERVER_URL);
 
 const TOGGLE_FEATURE_IDS = ["easy-mode", "voice", "large-text", "high-contrast", "voice-guide"];
 const TOGGLE_FEATURE_ICONS = {
@@ -48,7 +52,6 @@ export default function App() {
   const [connectedCode, setConnectedCode] = useState(getCodeFromPath());
   const [inputCode, setInputCode] = useState("");
 
-  // 저장된 설정이 있으면 그걸로 초기값을 채움
   const savedSettings = useRef(loadSavedSettings()).current;
 
   const [featureState, setFeatureState] = useState(savedSettings?.featureState || {});
@@ -89,6 +92,13 @@ export default function App() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
+  // 페이지 로드 시 URL에 코드가 있으면(QR 스캔) 자동으로 서버에 참가
+  useEffect(() => {
+    if (connectedCode) {
+      socket.emit("join-room", connectedCode);
+    }
+  }, []); // 최초 1회만
+
   const t = TRANSLATIONS[selectedLang] || TRANSLATIONS.en;
 
   useEffect(() => {
@@ -99,7 +109,7 @@ export default function App() {
     volumeRef.current = volume;
   }, [volume]);
 
-  // 기능 상태, 언어, 음량이 바뀔 때마다 자동으로 저장 (다음 접속 때도 그대로 유지됨)
+  // 기능 상태, 언어, 음량이 바뀔 때마다 자동으로 저장
   useEffect(() => {
     saveSettings({ featureState, selectedLang, volume });
   }, [featureState, selectedLang, volume]);
@@ -130,9 +140,9 @@ export default function App() {
     if (inputCode.length !== 6) return;
     window.history.pushState({}, "", `/${inputCode}`);
     setConnectedCode(inputCode);
+    socket.emit("join-room", inputCode);
   };
 
-  // 연결 해제해도 기능/언어 설정은 유지 (다음 연결 때 그대로 씀)
   const handleDisconnect = () => {
     window.history.pushState({}, "", "/");
     setConnectedCode(null);
@@ -146,7 +156,7 @@ export default function App() {
     setFeatureState((prev) => ({ ...prev, [featureId]: willBeOn }));
     const name = t.features[featureId].title;
     showToast(willBeOn ? t.featureOnToast(name) : t.featureOffToast(name));
-    // socket.emit("toggle-feature", { code: connectedCode, featureId, on: willBeOn });
+    socket.emit("toggle-feature", { code: connectedCode, featureId, on: willBeOn });
   };
 
   const handleSelectLang = (lang) => {
@@ -155,7 +165,7 @@ export default function App() {
     setLangOpen(false);
     setAutoDetected(false);
     showToast(newT.languageToast(lang.label), lang.id);
-    // socket.emit("set-language", { code: connectedCode, lang: lang.id });
+    socket.emit("set-language", { code: connectedCode, lang: lang.id });
   };
 
   const handleVoiceLanguageChange = (langId) => {
@@ -168,7 +178,7 @@ export default function App() {
     setAutoDetected(false);
     const langInfo = CARD_LANGUAGES.find((l) => l.id === langId);
     showToast(newT.languageToast(langInfo.label), langId);
-    // socket.emit("set-language", { code: connectedCode, lang: langId });
+    socket.emit("set-language", { code: connectedCode, lang: langId });
   };
 
   const applyVoiceMatch = (match) => {
@@ -181,7 +191,7 @@ export default function App() {
       setFeatureState((prev) => ({ ...prev, [match.id]: willBeOn }));
       const name = t.features[match.id].title;
       showToast(willBeOn ? t.featureOnToast(name) : t.featureOffToast(name));
-      // socket.emit("toggle-feature", { code: connectedCode, featureId: match.id, on: willBeOn });
+      socket.emit("toggle-feature", { code: connectedCode, featureId: match.id, on: willBeOn });
     } else if (match.type === "language") {
       handleVoiceLanguageChange(match.id);
     }
