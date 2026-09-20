@@ -28,10 +28,12 @@ export default function App() {
   const [langOpen, setLangOpen] = useState(false);
 
   const [listening, setListening] = useState(false);
-  const [liveTranscript, setLiveTranscript] = useState(""); // 실시간으로 인식되는 텍스트
+  const [liveTranscript, setLiveTranscript] = useState("");
   const [toastMsg, setToastMsg] = useState(null);
 
   const matchedRef = useRef(false);
+  const cancelledRef = useRef(false); // 사용자가 직접 닫기를 눌렀는지 추적
+  const recognitionRef = useRef(null); // 지금 실행 중인 recognition 인스턴스
 
   useEffect(() => {
     const onPopState = () => setConnectedCode(getCodeFromPath());
@@ -103,7 +105,6 @@ export default function App() {
     }
   };
 
-  // 언어 하나로 듣기 시도 → 못 알아들으면 다음 언어로 자동 재시도
   const listenWithLangQueue = (langQueue) => {
     if (langQueue.length === 0) {
       setListening(false);
@@ -124,14 +125,14 @@ export default function App() {
 
     const recognition = new SpeechRecognition();
     recognition.lang = SPEECH_LANG_MAP[currentLangId] || "ko-KR";
-    recognition.interimResults = true; // 말하는 도중에도 결과를 계속 받기 위해 필수
+    recognition.interimResults = true;
+    recognitionRef.current = recognition;
 
     recognition.onstart = () => {
       setListening(true);
       setLiveTranscript("");
     };
 
-    // 말하는 동안 계속 호출됨 (중간 결과 + 최종 결과)
     recognition.onresult = (e) => {
       let combined = "";
       for (let i = 0; i < e.results.length; i++) {
@@ -139,7 +140,6 @@ export default function App() {
       }
       setLiveTranscript(combined);
 
-      // 마지막 결과가 확정됐을 때만 명령 매칭 시도
       const lastResult = e.results[e.results.length - 1];
       if (lastResult.isFinal) {
         const match = matchVoiceCommand(combined);
@@ -151,6 +151,16 @@ export default function App() {
     };
 
     recognition.onend = () => {
+      recognitionRef.current = null;
+
+      // 사용자가 직접 닫기 버튼을 눌렀으면 다음 언어로 재시도하지 않고 그냥 종료
+      if (cancelledRef.current) {
+        cancelledRef.current = false;
+        setListening(false);
+        setLiveTranscript("");
+        return;
+      }
+
       if (matchedRef.current) {
         setListening(false);
         setLiveTranscript("");
@@ -160,7 +170,9 @@ export default function App() {
     };
 
     recognition.onerror = () => {
-      listenWithLangQueue(restQueue);
+      if (!cancelledRef.current) {
+        listenWithLangQueue(restQueue);
+      }
     };
 
     recognition.start();
@@ -169,6 +181,17 @@ export default function App() {
   const handleVoiceClick = () => {
     const otherLangs = CARD_LANGUAGES.map((l) => l.id).filter((id) => id !== selectedLang);
     listenWithLangQueue([selectedLang, ...otherLangs]);
+  };
+
+  // 오버레이의 닫기(✕) 버튼: 지금 듣고 있는 걸 바로 중단
+  const handleCancelVoice = () => {
+    cancelledRef.current = true;
+    if (recognitionRef.current) {
+      recognitionRef.current.abort(); // stop()보다 abort()가 즉시 중단됨
+    } else {
+      setListening(false);
+      setLiveTranscript("");
+    }
   };
 
   // ── 코드 없음: 입력 화면 ──
@@ -213,7 +236,7 @@ export default function App() {
       </header>
 
       <main className="grid">
-        {/* 언어 선택 카드 (5개 주요 언어) */}
+        {/* 언어 선택 카드 */}
         <div className={`card lang-card ${langOpen ? "expanded" : ""}`}>
           <button className="lang-header" onClick={() => setLangOpen((prev) => !prev)}>
             <div className="card-top">
@@ -284,15 +307,16 @@ export default function App() {
         })}
       </main>
 
-      {/* 듣고 있는 동안 뜨는 오버레이: 실시간 인식 텍스트 표시 */}
+      {/* 듣고 있는 동안 뜨는 오버레이 */}
       {listening && (
         <div className="voice-overlay">
           <div className="voice-box">
+            <button className="voice-close-btn" onClick={handleCancelVoice} aria-label="close">
+              ✕
+            </button>
             <span className="mic-pulse">🎙️</span>
             <p className="voice-listening-text">{t.listening}</p>
-            <p className="voice-transcript">
-              {liveTranscript || "..."}
-            </p>
+            <p className="voice-transcript">{liveTranscript || "..."}</p>
           </div>
         </div>
       )}
