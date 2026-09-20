@@ -1,4 +1,4 @@
-export default {
+const vi = {
   pageTitle: "Điều khiển từ xa Kiosk",
   connectDesc: "Nhập mã 6 chữ số hiển thị trên màn hình kiosk",
   codePlaceholder: "VD: 482913",
@@ -24,3 +24,5 @@ export default {
     "large-text": { title: "Chữ lớn", desc: "Phóng to cỡ chữ" },
   },
 };
+
+export default vi;
