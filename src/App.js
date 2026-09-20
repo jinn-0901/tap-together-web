@@ -13,6 +13,8 @@ const TOGGLE_FEATURE_ICONS = {
   "voice-guide": "🔊",
 };
 
+const STORAGE_KEY = "kiosk-remote-settings";
+
 const getCodeFromPath = () => {
   const path = window.location.pathname.replace(/^\/|\/$/g, "");
   return /^\d{6}$/.test(path) ? path : null;
@@ -24,27 +26,50 @@ const detectBrowserLanguage = () => {
   return isCardLanguage(langCode) ? langCode : "en";
 };
 
+// 저장해둔 설정을 불러옴 (없으면 null)
+const loadSavedSettings = () => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch (err) {
+    return null;
+  }
+};
+
+const saveSettings = (settings) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  } catch (err) {
+    // 저장 실패해도 앱은 계속 동작하게 조용히 무시
+  }
+};
+
 export default function App() {
   const [connectedCode, setConnectedCode] = useState(getCodeFromPath());
   const [inputCode, setInputCode] = useState("");
-  const [featureState, setFeatureState] = useState({});
 
-  const [selectedLang, setSelectedLang] = useState(() => detectBrowserLanguage());
-  const [autoDetected, setAutoDetected] = useState(true);
+  // 저장된 설정이 있으면 그걸로 초기값을 채움
+  const savedSettings = useRef(loadSavedSettings()).current;
+
+  const [featureState, setFeatureState] = useState(savedSettings?.featureState || {});
+  const [selectedLang, setSelectedLang] = useState(
+    savedSettings?.selectedLang || detectBrowserLanguage()
+  );
+  const [autoDetected, setAutoDetected] = useState(!savedSettings?.selectedLang);
   const [langOpen, setLangOpen] = useState(false);
 
   const [listening, setListening] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState("");
   const [toastMsg, setToastMsg] = useState(null);
 
-  const [volume, setVolume] = useState(0.8);
+  const [volume, setVolume] = useState(savedSettings?.volume ?? 0.8);
 
   const matchedRef = useRef(false);
   const cancelledRef = useRef(false);
   const recognitionRef = useRef(null);
   const lastErrorRef = useRef(null);
   const voiceGuideRef = useRef(false);
-  const volumeRef = useRef(0.8);
+  const volumeRef = useRef(savedSettings?.volume ?? 0.8);
 
   useEffect(() => {
     const onPopState = () => setConnectedCode(getCodeFromPath());
@@ -74,6 +99,11 @@ export default function App() {
     volumeRef.current = volume;
   }, [volume]);
 
+  // 기능 상태, 언어, 음량이 바뀔 때마다 자동으로 저장 (다음 접속 때도 그대로 유지됨)
+  useEffect(() => {
+    saveSettings({ featureState, selectedLang, volume });
+  }, [featureState, selectedLang, volume]);
+
   const speak = (text, langId) => {
     if (!voiceGuideRef.current) return;
     if (!window.speechSynthesis) return;
@@ -102,11 +132,11 @@ export default function App() {
     setConnectedCode(inputCode);
   };
 
+  // 연결 해제해도 기능/언어 설정은 유지 (다음 연결 때 그대로 씀)
   const handleDisconnect = () => {
     window.history.pushState({}, "", "/");
     setConnectedCode(null);
     setInputCode("");
-    setFeatureState({});
     setLangOpen(false);
     setToastMsg(null);
   };
@@ -169,10 +199,11 @@ export default function App() {
     cancelledRef.current = false;
 
     const recognition = new SpeechRecognition();
-    // 화면 언어 감지랑 똑같은 규칙: 5개 지원 언어 밖이면 영어로 (음성 인식도 화면에 보이는 언어랑 맞춰줌)
+
     const browserLangCode = (navigator.language || "en").split("-")[0].toLowerCase();
     const speechLangId = isCardLanguage(browserLangCode) ? browserLangCode : "en";
     recognition.lang = SPEECH_LANG_MAP[speechLangId] || "en-US";
+
     recognition.interimResults = true;
     recognitionRef.current = recognition;
 
@@ -243,7 +274,6 @@ export default function App() {
     }
   };
 
-  // 화면 전체에 적용할 클래스 (큰 글자 / 고대비) — 코드 입력 화면, 기능 화면 둘 다 공통으로 사용
   const isLargeText = !!featureState["large-text"];
   const isHighContrast = !!featureState["high-contrast"];
   const pageClass = `page ${isLargeText ? "large" : ""} ${isHighContrast ? "high-contrast" : ""}`.trim();
