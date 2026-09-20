@@ -23,6 +23,22 @@ const zh = {
     voice: { title: "语音识别", desc: "可以用语音操作自助终端" },
     "large-text": { title: "大字体", desc: "放大文字大小" },
   },
+  categories: {
+    coffee: "☕ 咖啡",
+    latte: "🥛 拿铁",
+    tea: "🍵 茶",
+    ade: "🍹 气泡饮",
+  },
+  menu: {
+    americano: "美式咖啡",
+    "cafe-latte": "拿铁",
+    "strawberry-latte": "草莓拿铁",
+    "choco-latte": "巧克力拿铁",
+    "green-tea": "绿茶",
+    "yuja-tea": "柚子茶",
+    "iced-tea": "冰茶",
+    lemonade: "柠檬水",
+  },
 };
 
 export default zh;
