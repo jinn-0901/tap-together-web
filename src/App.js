@@ -206,18 +206,23 @@ export default function App() {
     saveSettings({ featureState, selectedLang, volume });
   }, [featureState, selectedLang, volume]);
 
-  const speak = (text, langId) => {
-    if (!voiceGuideRef.current) return;
-    if (!window.speechSynthesis) return;
+  const stripEmoji = (text) =>
+  	text
+    	.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}]/gu, "")
+    	.trim();
 
-    window.speechSynthesis.cancel();
-    setTimeout(() => {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = SPEECH_LANG_MAP[langId || selectedLang] || "ko-KR";
-      utterance.volume = volumeRef.current;
-      window.speechSynthesis.speak(utterance);
-    }, 50);
-  };
+	const speak = (text, langId) => {
+  	if (!voiceGuideRef.current) return;
+  	if (!window.speechSynthesis) return;
+
+  	window.speechSynthesis.cancel();
+  	setTimeout(() => {
+    	const utterance = new SpeechSynthesisUtterance(stripEmoji(text));
+    	utterance.lang = SPEECH_LANG_MAP[langId || selectedLang] || "ko-KR";
+    	utterance.volume = volumeRef.current;
+    	window.speechSynthesis.speak(utterance);
+  	}, 50);
+	};
 
   const showToast = (message, langId) => {
     setToastMsg(message);
