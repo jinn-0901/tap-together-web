@@ -30,7 +30,6 @@ const detectBrowserLanguage = () => {
   return isCardLanguage(langCode) ? langCode : "en";
 };
 
-// 저장해둔 설정을 불러옴 (없으면 null)
 const loadSavedSettings = () => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -44,13 +43,18 @@ const saveSettings = (settings) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   } catch (err) {
-    // 저장 실패해도 앱은 계속 동작하게 조용히 무시
+    // 조용히 무시
   }
 };
 
 export default function App() {
-  const [connectedCode, setConnectedCode] = useState(getCodeFromPath());
+  const urlCode = getCodeFromPath();
+
+  // connectedCode는 "서버가 실제로 확인해준" 코드일 때만 세팅됨
+  const [connectedCode, setConnectedCode] = useState(null);
   const [inputCode, setInputCode] = useState("");
+  const [connecting, setConnecting] = useState(!!urlCode); // URL로 바로 들어왔으면 확인 중 상태로 시작
+  const [connectError, setConnectError] = useState(null);
 
   const savedSettings = useRef(loadSavedSettings()).current;
 
@@ -73,15 +77,20 @@ export default function App() {
   const lastErrorRef = useRef(null);
   const voiceGuideRef = useRef(false);
   const volumeRef = useRef(savedSettings?.volume ?? 0.8);
-  const joinedRef = useRef(false); // URL로 바로 들어왔을 때 방 참가를 딱 한 번만 보내기 위한 플래그
+  const pendingCodeRef = useRef(null); // 지금 서버 응답을 기다리고 있는 코드
 
   useEffect(() => {
-    const onPopState = () => setConnectedCode(getCodeFromPath());
+    const onPopState = () => {
+      const code = getCodeFromPath();
+      if (!code) {
+        setConnectedCode(null);
+        setConnecting(false);
+      }
+    };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  // 탭이 백그라운드로 가면 듣기 중단
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden && recognitionRef.current) {
@@ -93,14 +102,47 @@ export default function App() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
-  // 페이지 로드 시 URL에 코드가 있으면(QR 스캔) 자동으로 서버에 참가.
-  // joinedRef로 이미 보냈는지 기억해서, connectedCode가 다시 바뀌어도 여기선 중복 실행되지 않음
+  // 서버의 join-room 응답(성공/실패)을 실제로 처리 — 여기가 이번에 새로 생긴 핵심 로직
   useEffect(() => {
-    if (connectedCode && !joinedRef.current) {
-      socket.emit("join-room", connectedCode);
-      joinedRef.current = true;
+    const onJoined = (code) => {
+      if (pendingCodeRef.current !== code) return; // 이미 지나간 요청의 응답이면 무시
+      setConnectedCode(code);
+      setConnecting(false);
+      setConnectError(null);
+      window.history.pushState({}, "", `/${code}`);
+    };
+
+    const onJoinError = (message) => {
+      setConnecting(false);
+      setConnectError(message);
+      setConnectedCode(null);
+      window.history.pushState({}, "", "/"); // 잘못된 코드면 URL도 원래대로 되돌림
+    };
+
+    const onKioskLeft = () => {
+      // 연결돼 있던 키오스크가 사라짐 → 연결 해제된 걸로 처리
+      setConnectedCode(null);
+      setConnecting(false);
+    };
+
+    socket.on("joined", onJoined);
+    socket.on("join-error", onJoinError);
+    socket.on("kiosk-left", onKioskLeft);
+
+    return () => {
+      socket.off("joined", onJoined);
+      socket.off("join-error", onJoinError);
+      socket.off("kiosk-left", onKioskLeft);
+    };
+  }, []);
+
+  // 페이지 로드 시 URL에 코드가 있으면(QR 스캔) 자동으로 참가 시도
+  useEffect(() => {
+    if (urlCode) {
+      pendingCodeRef.current = urlCode;
+      socket.emit("join-room", urlCode);
     }
-  }, [connectedCode]);
+  }, [urlCode]);
 
   const t = TRANSLATIONS[selectedLang] || TRANSLATIONS.en;
 
@@ -112,7 +154,6 @@ export default function App() {
     volumeRef.current = volume;
   }, [volume]);
 
-  // 기능 상태, 언어, 음량이 바뀔 때마다 자동으로 저장
   useEffect(() => {
     saveSettings({ featureState, selectedLang, volume });
   }, [featureState, selectedLang, volume]);
@@ -137,23 +178,27 @@ export default function App() {
   const handleCodeChange = (e) => {
     const onlyDigits = e.target.value.replace(/[^0-9]/g, "").slice(0, 6);
     setInputCode(onlyDigits);
+    setConnectError(null);
   };
 
+  // 이제 바로 연결됨 화면으로 안 넘어가고, 서버 응답을 기다림
   const handleConnect = () => {
     if (inputCode.length !== 6) return;
-    window.history.pushState({}, "", `/${inputCode}`);
-    setConnectedCode(inputCode);
+    setConnecting(true);
+    setConnectError(null);
+    pendingCodeRef.current = inputCode;
     socket.emit("join-room", inputCode);
-    joinedRef.current = true; // 여기서 직접 보냈으니 useEffect가 또 보내지 않도록 표시
   };
 
   const handleDisconnect = () => {
     window.history.pushState({}, "", "/");
     setConnectedCode(null);
     setInputCode("");
+    setConnecting(false);
+    setConnectError(null);
     setLangOpen(false);
     setToastMsg(null);
-    joinedRef.current = false; // 다음 연결을 위해 초기화
+    pendingCodeRef.current = null;
   };
 
   const toggleFeature = (featureId) => {
@@ -293,7 +338,19 @@ export default function App() {
   const isHighContrast = !!featureState["high-contrast"];
   const pageClass = `page ${isLargeText ? "large" : ""} ${isHighContrast ? "high-contrast" : ""}`.trim();
 
-  // ── 코드 없음: 입력 화면 ──
+  // ── 서버 응답 기다리는 중(확인 중) 화면 ──
+  if (connecting) {
+    return (
+      <div className={`${pageClass} center`}>
+        <div className="connect-card">
+          <h1>{t.pageTitle}</h1>
+          <p>연결 확인 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── 연결 안 됨: 코드 입력 화면 ──
   if (!connectedCode) {
     return (
       <div className={`${pageClass} center`}>
@@ -315,6 +372,8 @@ export default function App() {
               {t.connectBtn}
             </button>
           </div>
+
+          {connectError && <p className="connect-error">{connectError}</p>}
         </div>
       </div>
     );
