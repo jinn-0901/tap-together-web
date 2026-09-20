@@ -177,16 +177,7 @@ export default function App() {
     recognition.start();
   };
 
-  // 마이크 권한을 먼저 한 번만 명시적으로 요청 (이후 재시도에서는 다시 안 물어봄)
-  const handleVoiceClick = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((track) => track.stop()); // 권한만 확인하고 스트림은 바로 정리
-    } catch (err) {
-      showToast(t.notSupported);
-      return;
-    }
-
+  const handleVoiceClick = () => {
     const otherLangs = CARD_LANGUAGES.map((l) => l.id).filter((id) => id !== selectedLang);
     listenWithLangQueue([selectedLang, ...otherLangs]);
   };
