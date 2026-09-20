@@ -143,16 +143,6 @@ export const LANGUAGE_TRIGGERS = {
   },
 };
 
-// "언어로 바꿔줘" 계열 트리거 단어 — 언어 이름 + 이 동작 단어가 같이 있으면 훨씬 확실하게 매칭됨
-// (동작 단어 없이 언어 이름만 말해도 기존처럼 매칭은 되지만, 있으면 더 자연스러운 문장도 커버)
-const LANGUAGE_ACTION_WORDS = {
-  ko: ["바꿔줘", "바꿔", "바꿔주세요", "바꿀래", "바꿀래요", "변경해줘", "변경해", "설정해줘", "선택해줘"],
-  en: ["change to", "switch to", "set to", "changeit", "switchit", "pleasechange"],
-  zh: ["换成", "改成", "切换成", "设置成", "帮我换", "帮我改"],
-  ja: ["に変えて", "に切り替えて", "に設定して", "に変更して"],
-  vi: ["đổisang", "chuyểnsang", "đặtsang", "làmơnđổi"],
-};
-
 // "~말고", "~아니고" 등 "이건 아니고 이거"라는 뜻의 연결어
 const CUT_MARKERS = {
   ko: [
