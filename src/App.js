@@ -575,4 +575,7 @@ export default function App() {
         </div>
       )}
 
-      {toastMsg && <p
+      {toastMsg && <p className="toast">{toastMsg}</p>}
+    </div>
+  );
+}
