@@ -159,9 +159,12 @@ export default function App() {
       window.history.pushState({}, "", "/");
     };
 
+    // 키오스크가 사라지거나(수동 새로고침/자동 만료/결제완료), 연결이 끊기면 초기 화면으로 되돌림
     const onKioskLeft = () => {
       setConnectedCode(null);
       setConnecting(false);
+      setInputCode("");
+      window.history.pushState({}, "", "/");
     };
 
     const onKioskCodeChanged = ({ code }) => {
