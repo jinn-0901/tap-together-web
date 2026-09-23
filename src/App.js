@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import "./App.css";
 import { CARD_LANGUAGES, SPEECH_LANG_MAP, isCardLanguage } from "./i18n/languages";
-import { TRANSLATIONS } from "./i18n/translations";
 import { matchVoiceCommand } from "./i18n/voiceCommands";
 import { io } from "socket.io-client";
 
@@ -19,7 +18,6 @@ const TOGGLE_FEATURE_ICONS = {
 
 const STORAGE_KEY = "kiosk-remote-settings";
 
-// 서버가 보내는 에러 코드 → 번역 파일의 키 이름 매핑
 const ERROR_CODE_KEY_MAP = {
   INVALID_CODE_FORMAT: "errorInvalidFormat",
   CODE_NOT_FOUND: "errorCodeNotFound",
@@ -55,8 +53,13 @@ const saveSettings = (settings) => {
   }
 };
 
+const format = (template, vars) =>
+  (template || "").replace(/\{(\w+)\}/g, (_, k) => (vars[k] !== undefined ? vars[k] : ""));
+
 export default function App() {
   const urlCode = getCodeFromPath();
+
+  const [translationsData, setTranslationsData] = useState(null);
 
   const [connectedCode, setConnectedCode] = useState(null);
   const [inputCode, setInputCode] = useState("");
@@ -87,7 +90,14 @@ export default function App() {
   const pendingCodeRef = useRef(null);
   const connectedCodeRef = useRef(null);
   const selectedLangRef = useRef(selectedLang);
-  const tRef = useRef(null); // 에러 코드 번역 시 최신 t를 읽기 위한 ref
+  const tRef = useRef(null);
+
+  useEffect(() => {
+    fetch(`${SERVER_URL}/translations/web`)
+      .then((res) => res.json())
+      .then((data) => setTranslationsData(data))
+      .catch(() => setTranslationsData(null));
+  }, []);
 
   useEffect(() => {
     connectedCodeRef.current = connectedCode;
@@ -130,7 +140,6 @@ export default function App() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
-  // 서버 응답 처리 (참가 성공/실패, 키오스크 코드 갱신, 키오스크 활동 안내)
   useEffect(() => {
     const onJoined = (code) => {
       if (pendingCodeRef.current !== code) return;
@@ -141,7 +150,6 @@ export default function App() {
       socket.emit("set-language", { code, lang: selectedLangRef.current });
     };
 
-    // 서버가 보낸 에러 코드를, 지금 화면 언어에 맞는 문구로 번역해서 저장
     const onJoinError = (errorCode) => {
       setConnecting(false);
       const key = ERROR_CODE_KEY_MAP[errorCode];
@@ -188,7 +196,7 @@ export default function App() {
     }
   }, [urlCode]);
 
-  const t = TRANSLATIONS[selectedLang] || TRANSLATIONS.en;
+  const t = translationsData ? translationsData[selectedLang] || translationsData.en : null;
 
   useEffect(() => {
     tRef.current = t;
@@ -206,23 +214,18 @@ export default function App() {
     saveSettings({ featureState, selectedLang, volume });
   }, [featureState, selectedLang, volume]);
 
-  const stripEmoji = (text) =>
-  	text
-    	.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}]/gu, "")
-    	.trim();
+  const speak = (text, langId) => {
+    if (!voiceGuideRef.current) return;
+    if (!window.speechSynthesis) return;
 
-	const speak = (text, langId) => {
-  	if (!voiceGuideRef.current) return;
-  	if (!window.speechSynthesis) return;
-
-  	window.speechSynthesis.cancel();
-  	setTimeout(() => {
-    	const utterance = new SpeechSynthesisUtterance(stripEmoji(text));
-    	utterance.lang = SPEECH_LANG_MAP[langId || selectedLang] || "ko-KR";
-    	utterance.volume = volumeRef.current;
-    	window.speechSynthesis.speak(utterance);
-  	}, 50);
-	};
+    window.speechSynthesis.cancel();
+    setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = SPEECH_LANG_MAP[langId || selectedLang] || "ko-KR";
+      utterance.volume = volumeRef.current;
+      window.speechSynthesis.speak(utterance);
+    }, 50);
+  };
 
   const showToast = (message, langId) => {
     setToastMsg(message);
@@ -262,16 +265,16 @@ export default function App() {
     const willBeOn = !featureState[featureId];
     setFeatureState((prev) => ({ ...prev, [featureId]: willBeOn }));
     const name = t.features[featureId].title;
-    showToast(willBeOn ? t.featureOnToast(name) : t.featureOffToast(name));
+    showToast(willBeOn ? format(t.featureOnToast, { name }) : format(t.featureOffToast, { name }));
     socket.emit("toggle-feature", { code: connectedCode, featureId, on: willBeOn });
   };
 
   const handleSelectLang = (lang) => {
-    const newT = TRANSLATIONS[lang.id];
+    const newT = translationsData[lang.id];
     setSelectedLang(lang.id);
     setLangOpen(false);
     setAutoDetected(false);
-    showToast(newT.languageToast(lang.label), lang.id);
+    showToast(format(newT.languageToast, { name: lang.label }), lang.id);
     socket.emit("set-language", { code: connectedCode, lang: lang.id });
   };
 
@@ -280,11 +283,11 @@ export default function App() {
       showToast(t.notRecognized);
       return;
     }
-    const newT = TRANSLATIONS[langId];
+    const newT = translationsData[langId];
     setSelectedLang(langId);
     setAutoDetected(false);
     const langInfo = CARD_LANGUAGES.find((l) => l.id === langId);
-    showToast(newT.languageToast(langInfo.label), langId);
+    showToast(format(newT.languageToast, { name: langInfo.label }), langId);
     socket.emit("set-language", { code: connectedCode, lang: langId });
   };
 
@@ -297,7 +300,7 @@ export default function App() {
 
       setFeatureState((prev) => ({ ...prev, [match.id]: willBeOn }));
       const name = t.features[match.id].title;
-      showToast(willBeOn ? t.featureOnToast(name) : t.featureOffToast(name));
+      showToast(willBeOn ? format(t.featureOnToast, { name }) : format(t.featureOffToast, { name }));
       socket.emit("toggle-feature", { code: connectedCode, featureId: match.id, on: willBeOn });
     } else if (match.type === "language") {
       handleVoiceLanguageChange(match.id);
@@ -394,6 +397,16 @@ export default function App() {
   const isLargeText = !!featureState["large-text"];
   const isHighContrast = !!featureState["high-contrast"];
   const pageClass = `page ${isLargeText ? "large" : ""} ${isHighContrast ? "high-contrast" : ""}`.trim();
+
+  if (!t) {
+    return (
+      <div className={`${pageClass} center`}>
+        <div className="connect-card">
+          <p>불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (connecting) {
     return (
@@ -562,7 +575,4 @@ export default function App() {
         </div>
       )}
 
-      {toastMsg && <p className="toast">{toastMsg}</p>}
-    </div>
-  );
-}
+      {toastMsg && <p
