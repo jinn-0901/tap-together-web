@@ -159,7 +159,6 @@ export default function App() {
       window.history.pushState({}, "", "/");
     };
 
-    // 키오스크가 사라지거나(수동 새로고침/자동 만료/결제완료), 연결이 끊기면 초기 화면으로 되돌림
     const onKioskLeft = () => {
       setConnectedCode(null);
       setConnecting(false);
@@ -317,16 +316,14 @@ export default function App() {
       return;
     }
 
-    // 이전에 실행 중이던 인식이 남아있으면 먼저 확실히 정리
     if (recognitionRef.current) {
       recognitionRef.current.abort();
       recognitionRef.current = null;
     }
 
-    // 마이크 권한을 먼저 명시적으로 확인 (이게 있어야 두 번째부터 다시 안 물어봄)
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((track) => track.stop()); // 권한 확인용이라 바로 정리
+      stream.getTracks().forEach((track) => track.stop());
     } catch (err) {
       showToast(t.notSupported);
       return;
@@ -366,41 +363,6 @@ export default function App() {
         }
       }
     };
-
-  recognition.onerror = (e) => {
-    lastErrorRef.current = e.error;
-  };
-
-  recognition.onend = () => {
-    recognitionRef.current = null;
-    setListening(false);
-    setLiveTranscript("");
-
-    if (cancelledRef.current) {
-      cancelledRef.current = false;
-      lastErrorRef.current = null;
-      return;
-    }
-
-    if (matchedRef.current) {
-      lastErrorRef.current = null;
-      return;
-    }
-
-    if (
-      lastErrorRef.current === "not-allowed" ||
-      lastErrorRef.current === "audio-capture" ||
-      lastErrorRef.current === "service-not-allowed"
-    ) {
-      showToast(t.notSupported);
-    } else {
-      showToast(t.notRecognized);
-    }
-    lastErrorRef.current = null;
-  };
-
-  recognition.start();
-};
 
     recognition.onerror = (e) => {
       lastErrorRef.current = e.error;
