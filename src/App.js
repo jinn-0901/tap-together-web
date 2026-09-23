@@ -311,61 +311,61 @@ export default function App() {
   };
 
   const handleVoiceClick = async () => {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    showToast(t.notSupported);
-    return;
-  }
-
-  // 이전에 실행 중이던 인식이 남아있으면 먼저 확실히 정리
-  if (recognitionRef.current) {
-    recognitionRef.current.abort();
-    recognitionRef.current = null;
-  }
-
-  // 마이크 권한을 먼저 명시적으로 확인 (이게 있어야 두 번째부터 다시 안 물어봄)
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    stream.getTracks().forEach((track) => track.stop()); // 권한 확인용이라 바로 정리
-  } catch (err) {
-    showToast(t.notSupported);
-    return;
-  }
-
-  matchedRef.current = false;
-  lastErrorRef.current = null;
-  cancelledRef.current = false;
-
-  const recognition = new SpeechRecognition();
-
-  const browserLangCode = (navigator.language || "en").split("-")[0].toLowerCase();
-  const speechLangId = isCardLanguage(browserLangCode) ? browserLangCode : "en";
-  recognition.lang = SPEECH_LANG_MAP[speechLangId] || "en-US";
-
-  recognition.interimResults = true;
-  recognitionRef.current = recognition;
-
-  recognition.onstart = () => {
-    setListening(true);
-    setLiveTranscript("");
-  };
-
-  recognition.onresult = (e) => {
-    let combined = "";
-    for (let i = 0; i < e.results.length; i++) {
-      combined += e.results[i][0].transcript;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showToast(t.notSupported);
+      return;
     }
-    setLiveTranscript(combined);
 
-    const lastResult = e.results[e.results.length - 1];
-    if (lastResult.isFinal) {
-      const match = matchVoiceCommand(combined);
-      if (match) {
-        matchedRef.current = true;
-        applyVoiceMatch(match);
+    // 이전에 실행 중이던 인식이 남아있으면 먼저 확실히 정리
+    if (recognitionRef.current) {
+      recognitionRef.current.abort();
+      recognitionRef.current = null;
+    }
+
+    // 마이크 권한을 먼저 명시적으로 확인 (이게 있어야 두 번째부터 다시 안 물어봄)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((track) => track.stop()); // 권한 확인용이라 바로 정리
+    } catch (err) {
+      showToast(t.notSupported);
+      return;
+    }
+
+    matchedRef.current = false;
+    lastErrorRef.current = null;
+    cancelledRef.current = false;
+
+    const recognition = new SpeechRecognition();
+
+    const browserLangCode = (navigator.language || "en").split("-")[0].toLowerCase();
+    const speechLangId = isCardLanguage(browserLangCode) ? browserLangCode : "en";
+    recognition.lang = SPEECH_LANG_MAP[speechLangId] || "en-US";
+
+    recognition.interimResults = true;
+    recognitionRef.current = recognition;
+
+    recognition.onstart = () => {
+      setListening(true);
+      setLiveTranscript("");
+    };
+
+    recognition.onresult = (e) => {
+      let combined = "";
+      for (let i = 0; i < e.results.length; i++) {
+        combined += e.results[i][0].transcript;
       }
-    }
-  };
+      setLiveTranscript(combined);
+
+      const lastResult = e.results[e.results.length - 1];
+      if (lastResult.isFinal) {
+        const match = matchVoiceCommand(combined);
+        if (match) {
+          matchedRef.current = true;
+          applyVoiceMatch(match);
+        }
+      }
+    };
 
   recognition.onerror = (e) => {
     lastErrorRef.current = e.error;
