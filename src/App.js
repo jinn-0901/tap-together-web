@@ -141,6 +141,18 @@ export default function App() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
+  // 소켓이 (짧은 끊김 후) 재연결됐을 때, 서버가 이전 상태를 복구 못 했으면 다시 참가 시도
+  useEffect(() => {
+    const onConnect = () => {
+      if (!socket.recovered && connectedCodeRef.current) {
+        pendingCodeRef.current = connectedCodeRef.current;
+        socket.emit("join-room", connectedCodeRef.current);
+      }
+    };
+    socket.on("connect", onConnect);
+    return () => socket.off("connect", onConnect);
+  }, []);
+
   useEffect(() => {
     const onJoined = (code) => {
       if (pendingCodeRef.current !== code) return;
@@ -310,7 +322,6 @@ export default function App() {
     }
   };
 
-  // 메뉴 주문 인식 시도 — 성공하면 true 반환, 실패하면 false 반환
   const tryHandleMenuOrder = (spokenText) => {
     if (!t || !t.menu || !connectedCode) return false;
 
@@ -375,7 +386,6 @@ export default function App() {
 
       const lastResult = e.results[e.results.length - 1];
       if (lastResult.isFinal) {
-        // 1순위: 기능 제어/언어 변경 명령인지 먼저 확인
         const match = matchVoiceCommand(combined);
         if (match) {
           matchedRef.current = true;
@@ -383,7 +393,6 @@ export default function App() {
           return;
         }
 
-        // 2순위: 메뉴 주문인지 확인
         if (tryHandleMenuOrder(combined)) {
           matchedRef.current = true;
         }
