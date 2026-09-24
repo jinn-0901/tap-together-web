@@ -26,9 +26,15 @@ const ERROR_CODE_KEY_MAP = {
   TOO_MANY_ATTEMPTS: "errorTooManyAttempts",
 };
 
+// URL에서 코드와 "공유 링크 여부"를 같이 읽어옴 (/코드?shared=1 형태)
 const getCodeFromPath = () => {
   const path = window.location.pathname.replace(/^\/|\/$/g, "");
   return /^\d{6}$/.test(path) ? path : null;
+};
+
+const getIsSharedFromUrl = () => {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("shared") === "1";
 };
 
 const detectBrowserLanguage = () => {
@@ -59,13 +65,18 @@ const format = (template, vars) =>
 
 export default function App() {
   const urlCode = getCodeFromPath();
+  const urlIsShared = getIsSharedFromUrl();
 
   const [translationsData, setTranslationsData] = useState(null);
 
   const [connectedCode, setConnectedCode] = useState(null);
+  const [myRole, setMyRole] = useState(null); // "direct" | "shared"
   const [inputCode, setInputCode] = useState("");
   const [connecting, setConnecting] = useState(!!urlCode);
   const [connectError, setConnectError] = useState(null);
+
+  const [cartSummary, setCartSummary] = useState("");
+  const [shareCopied, setShareCopied] = useState(false);
 
   const savedSettings = useRef(loadSavedSettings()).current;
 
@@ -141,25 +152,14 @@ export default function App() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
-  // 소켓이 (짧은 끊김 후) 재연결됐을 때, 서버가 이전 상태를 복구 못 했으면 다시 참가 시도
   useEffect(() => {
-    const onConnect = () => {
-      if (!socket.recovered && connectedCodeRef.current) {
-        pendingCodeRef.current = connectedCodeRef.current;
-        socket.emit("join-room", connectedCodeRef.current);
-      }
-    };
-    socket.on("connect", onConnect);
-    return () => socket.off("connect", onConnect);
-  }, []);
-
-  useEffect(() => {
-    const onJoined = (code) => {
+    const onJoined = ({ code, role }) => {
       if (pendingCodeRef.current !== code) return;
       setConnectedCode(code);
+      setMyRole(role);
       setConnecting(false);
       setConnectError(null);
-      window.history.pushState({}, "", `/${code}`);
+      window.history.pushState({}, "", role === "shared" ? `/${code}?shared=1` : `/${code}`);
       socket.emit("set-language", { code, lang: selectedLangRef.current });
     };
 
@@ -174,8 +174,10 @@ export default function App() {
 
     const onKioskLeft = () => {
       setConnectedCode(null);
+      setMyRole(null);
       setConnecting(false);
       setInputCode("");
+      setCartSummary("");
       window.history.pushState({}, "", "/");
     };
 
@@ -188,11 +190,16 @@ export default function App() {
       speak(message, langId);
     };
 
+    const onCartSummaryUpdated = ({ summaryText }) => {
+      setCartSummary(summaryText);
+    };
+
     socket.on("joined", onJoined);
     socket.on("join-error", onJoinError);
     socket.on("kiosk-left", onKioskLeft);
     socket.on("kiosk-code-changed", onKioskCodeChanged);
     socket.on("kiosk-activity", onKioskActivity);
+    socket.on("cart-summary-updated", onCartSummaryUpdated);
 
     return () => {
       socket.off("joined", onJoined);
@@ -200,6 +207,7 @@ export default function App() {
       socket.off("kiosk-left", onKioskLeft);
       socket.off("kiosk-code-changed", onKioskCodeChanged);
       socket.off("kiosk-activity", onKioskActivity);
+      socket.off("cart-summary-updated", onCartSummaryUpdated);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -207,8 +215,9 @@ export default function App() {
   useEffect(() => {
     if (urlCode) {
       pendingCodeRef.current = urlCode;
-      socket.emit("join-room", urlCode);
+      socket.emit("join-room", urlCode, urlIsShared);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlCode]);
 
   const t = translationsData ? translationsData[selectedLang] || translationsData.en : null;
@@ -259,7 +268,7 @@ export default function App() {
     setConnecting(true);
     setConnectError(null);
     pendingCodeRef.current = inputCode;
-    socket.emit("join-room", inputCode);
+    socket.emit("join-room", inputCode, false); // 직접 입력은 항상 직접 연결로 취급
   };
 
   const handleDisconnect = () => {
@@ -268,12 +277,37 @@ export default function App() {
     }
     window.history.pushState({}, "", "/");
     setConnectedCode(null);
+    setMyRole(null);
     setInputCode("");
     setConnecting(false);
     setConnectError(null);
     setLangOpen(false);
     setToastMsg(null);
+    setCartSummary("");
     pendingCodeRef.current = null;
+  };
+
+  // 공유 링크 생성 및 복사/공유 시트 열기
+  const handleShare = async () => {
+    if (!connectedCode) return;
+    const shareUrl = `${window.location.origin}/${connectedCode}?shared=1`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ url: shareUrl, title: t.pageTitle });
+      } catch (err) {
+        // 사용자가 공유를 취소한 경우 등은 조용히 무시
+      }
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch (err) {
+      showToast(shareUrl);
+    }
   };
 
   const toggleFeature = (featureId) => {
@@ -506,10 +540,22 @@ export default function App() {
         <h1>{t.pageTitle}</h1>
         <p>{t.headerDesc}</p>
         <span className="status on">🟢 {t.connectedLabel} · {connectedCode}</span>
+        {myRole === "shared" && <span className="status shared-badge">🔗 공유로 참가함</span>}
         <button className="disconnect-btn" onClick={handleDisconnect}>
           {t.disconnectBtn}
         </button>
+        {myRole === "direct" && (
+          <button className="share-btn" onClick={handleShare}>
+            {shareCopied ? "✅ 복사됨" : "🔗 공유"}
+          </button>
+        )}
       </header>
+
+      {cartSummary && (
+        <div className="cart-summary-bar">
+          🛒 {cartSummary}
+        </div>
+      )}
 
       <main className="grid">
         <div className={`card lang-card ${langOpen ? "expanded" : ""}`}>
