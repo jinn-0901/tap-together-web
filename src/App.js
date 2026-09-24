@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import "./App.css";
 import { CARD_LANGUAGES, SPEECH_LANG_MAP, isCardLanguage } from "./i18n/languages";
 import { matchVoiceCommand } from "./voice/voiceCommands";
-import { KIOSK_SPEECH_LANG_MAP, parseVoiceOrder, NOT_FOUND_MESSAGES } from "./voice/menuVoiceOrder";
+import { parseVoiceOrder, NOT_FOUND_MESSAGES } from "./voice/menuVoiceOrder";
 import { io } from "socket.io-client";
 
 const SERVER_URL = process.env.REACT_APP_SERVER_URL || "http://localhost:4000";
@@ -80,14 +80,11 @@ export default function App() {
   const [liveTranscript, setLiveTranscript] = useState("");
   const [toastMsg, setToastMsg] = useState(null);
 
-  const [menuListening, setMenuListening] = useState(false);
-
   const [volume, setVolume] = useState(savedSettings?.volume ?? 0.8);
 
   const matchedRef = useRef(false);
   const cancelledRef = useRef(false);
   const recognitionRef = useRef(null);
-  const menuRecognitionRef = useRef(null);
   const lastErrorRef = useRef(null);
   const voiceGuideRef = useRef(false);
   const volumeRef = useRef(savedSettings?.volume ?? 0.8);
@@ -313,6 +310,24 @@ export default function App() {
     }
   };
 
+  // 메뉴 주문 인식 시도 — 성공하면 true 반환, 실패하면 false 반환
+  const tryHandleMenuOrder = (spokenText) => {
+    if (!t || !t.menu || !connectedCode) return false;
+
+    const parsed = parseVoiceOrder(spokenText, t);
+    if (!parsed) return false;
+
+    const { item, options, wantsToBuy } = parsed;
+    socket.emit("remote-voice-order", {
+      code: connectedCode,
+      itemId: item.id,
+      options,
+      wantsToBuy,
+    });
+    showToast(`${t.menu[item.id]} ${wantsToBuy ? "🛒" : ""}`);
+    return true;
+  };
+
   const handleVoiceClick = async () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -360,10 +375,17 @@ export default function App() {
 
       const lastResult = e.results[e.results.length - 1];
       if (lastResult.isFinal) {
+        // 1순위: 기능 제어/언어 변경 명령인지 먼저 확인
         const match = matchVoiceCommand(combined);
         if (match) {
           matchedRef.current = true;
           applyVoiceMatch(match);
+          return;
+        }
+
+        // 2순위: 메뉴 주문인지 확인
+        if (tryHandleMenuOrder(combined)) {
+          matchedRef.current = true;
         }
       }
     };
@@ -395,7 +417,7 @@ export default function App() {
       ) {
         showToast(t.notSupported);
       } else {
-        showToast(t.notRecognized);
+        showToast(NOT_FOUND_MESSAGES[selectedLang] || t.notRecognized);
       }
       lastErrorRef.current = null;
     };
@@ -411,55 +433,6 @@ export default function App() {
       setListening(false);
       setLiveTranscript("");
     }
-  };
-
-  const handleMenuVoiceClick = async () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition || !t || !t.menu) return;
-
-    if (menuRecognitionRef.current) {
-      menuRecognitionRef.current.abort();
-      menuRecognitionRef.current = null;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((track) => track.stop());
-    } catch (err) {
-      showToast(t.notSupported);
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = KIOSK_SPEECH_LANG_MAP[selectedLang] || SPEECH_LANG_MAP[selectedLang] || "ko-KR";
-    menuRecognitionRef.current = recognition;
-
-    recognition.onstart = () => setMenuListening(true);
-    recognition.onend = () => {
-      setMenuListening(false);
-      menuRecognitionRef.current = null;
-    };
-
-    recognition.onresult = (e) => {
-      const spokenText = e.results[0][0].transcript;
-      const parsed = parseVoiceOrder(spokenText, t);
-
-      if (!parsed) {
-        showToast(NOT_FOUND_MESSAGES[selectedLang] || NOT_FOUND_MESSAGES.ko);
-        return;
-      }
-
-      const { item, options, wantsToBuy } = parsed;
-      socket.emit("remote-voice-order", {
-        code: connectedCode,
-        itemId: item.id,
-        options,
-        wantsToBuy,
-      });
-      showToast(`${t.menu[item.id]} ${wantsToBuy ? "🛒" : ""}`);
-    };
-
-    recognition.start();
   };
 
   const isLargeText = !!featureState["large-text"];
@@ -573,18 +546,6 @@ export default function App() {
           </div>
           <span className="title">{t.features.voice.title}</span>
           <span className="desc">{listening ? t.listening : t.features.voice.desc}</span>
-        </button>
-
-        <button
-          className={`card voice-card ${menuListening ? "on" : ""}`}
-          onClick={handleMenuVoiceClick}
-          disabled={menuListening}
-        >
-          <div className="card-top">
-            <span className={`icon ${menuListening ? "pulse" : ""}`}>🍽️</span>
-          </div>
-          <span className="title">메뉴 음성 주문</span>
-          <span className="desc">{menuListening ? t.listening : "메뉴 이름을 말해보세요"}</span>
         </button>
 
         <div className={`card ${isVoiceGuideOn ? "on" : ""}`}>
