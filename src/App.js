@@ -585,6 +585,8 @@ export default function App() {
   const isOrderWhipAvailable = orderOptionsFor ? WHIP_AVAILABLE_IDS.includes(orderOptionsFor.id) : false;
   const isOrderHotIceAvailable = orderOptionsFor ? !FIXED_ICE_IDS.includes(orderOptionsFor.id) : false;
   const hasMenuData = !!t.menu;
+  const remoteTotalCount = remoteCart.reduce((s, c) => s + c.qty, 0);
+  const remoteTotalPrice = remoteCart.reduce((s, c) => s + c.unitPrice * c.qty, 0);
 
   return (
     <div className={pageClass}>
@@ -629,53 +631,61 @@ export default function App() {
         </section>
       )}
 
-      {remoteCart.length > 0 && (
+      {hasMenuData && (
         <section className="remote-cart-panel">
           <div className="cart-header">
-            <h2>{t.cartTitle} <span className="cart-badge">{remoteCart.reduce((s, c) => s + c.qty, 0)}</span></h2>
-            <button className="clear-btn" onClick={clearRemoteCart}>{t.clearBtn}</button>
+            <h2>{t.cartTitle} <span className="cart-badge">{remoteTotalCount}</span></h2>
+            {remoteCart.length > 0 && (
+              <button className="clear-btn" onClick={clearRemoteCart}>{t.clearBtn}</button>
+            )}
           </div>
 
-          <div className="cart-list">
-            {remoteCart.map((c) => {
-              const menuItem = MENU.find((m) => m.id === c.id);
-              const parts = [];
-              if (!FIXED_ICE_IDS.includes(c.id)) parts.push(c.options.hotIce === "hot" ? t.hotOption : t.iceOption);
-              if (c.options.size === "large") parts.push(t.sizeLarge.replace(/\s*\(.*\)/, ""));
-              if (c.options.whip === "add") parts.push(t.whipAdd.replace(/\s*\(.*\)/, ""));
-              if (c.options.topping === "pearl") parts.push(t.toppingPearl.replace(/\s*\(.*\)/, ""));
-              const summary = parts.join(" · ");
+          {remoteCart.length === 0 ? (
+            <p className="cart-empty">{t.cartEmpty}</p>
+          ) : (
+            <>
+              <div className="cart-list">
+                {remoteCart.map((c) => {
+                  const menuItem = MENU.find((m) => m.id === c.id);
+                  const parts = [];
+                  if (!FIXED_ICE_IDS.includes(c.id)) parts.push(c.options.hotIce === "hot" ? t.hotOption : t.iceOption);
+                  if (c.options.size === "large") parts.push(t.sizeLarge.replace(/\s*\(.*\)/, ""));
+                  if (c.options.whip === "add") parts.push(t.whipAdd.replace(/\s*\(.*\)/, ""));
+                  if (c.options.topping === "pearl") parts.push(t.toppingPearl.replace(/\s*\(.*\)/, ""));
+                  const summary = parts.join(" · ");
 
-              return (
-                <div key={c.cartId} className="cart-item">
-                  <div className="cart-item-info">
-                    <span className="cart-item-icon">{menuItem?.icon}</span>
-                    <div>
-                      <p className="cart-item-name">{t.menu[c.id]}</p>
-                      {summary && <p className="cart-item-options">{summary}</p>}
-                      <p className="cart-item-price">{c.unitPrice.toLocaleString()}원</p>
+                  return (
+                    <div key={c.cartId} className="cart-item">
+                      <div className="cart-item-info">
+                        <span className="cart-item-icon">{menuItem?.icon}</span>
+                        <div>
+                          <p className="cart-item-name">{t.menu[c.id]}</p>
+                          {summary && <p className="cart-item-options">{summary}</p>}
+                          <p className="cart-item-price">{c.unitPrice.toLocaleString()}원</p>
+                        </div>
+                      </div>
+                      <div className="cart-item-actions">
+                        <div className="qty-controls">
+                          <button onClick={() => changeRemoteQty(c.cartId, -1)}>-</button>
+                          <span>{c.qty}</span>
+                          <button onClick={() => changeRemoteQty(c.cartId, 1)}>+</button>
+                        </div>
+                        <button className="remove-btn" onClick={() => removeRemoteItem(c.cartId)}>✕</button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="cart-item-actions">
-                    <div className="qty-controls">
-                      <button onClick={() => changeRemoteQty(c.cartId, -1)}>-</button>
-                      <span>{c.qty}</span>
-                      <button onClick={() => changeRemoteQty(c.cartId, 1)}>+</button>
-                    </div>
-                    <button className="remove-btn" onClick={() => removeRemoteItem(c.cartId)}>✕</button>
-                  </div>
+                  );
+                })}
+              </div>
+
+              <div className="cart-footer">
+                <div className="total-row">
+                  <span>{format(t.totalCountLabel, { n: remoteTotalCount })}</span>
+                  <span className="total-price">{remoteTotalPrice.toLocaleString()}원</span>
                 </div>
-              );
-            })}
-          </div>
-
-          <div className="cart-footer">
-            <div className="total-row">
-              <span>{format(t.totalCountLabel, { n: remoteCart.reduce((s, c) => s + c.qty, 0) })}</span>
-              <span className="total-price">{remoteCart.reduce((s, c) => s + c.unitPrice * c.qty, 0).toLocaleString()}원</span>
-            </div>
-            <button className="checkout-btn" onClick={handleRemoteCheckout}>{t.checkoutBtn}</button>
-          </div>
+                <button className="checkout-btn" onClick={handleRemoteCheckout}>{t.checkoutBtn}</button>
+              </div>
+            </>
+          )}
         </section>
       )}
 
