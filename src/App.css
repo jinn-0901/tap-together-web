@@ -473,7 +473,7 @@ body {
   to { opacity: 1; transform: translate(-50%, 0); }
 }
 
-/* 메뉴 옵션 선택 오버레이 (리모컨 화면 주문용) */
+/* 메뉴 옵션 선택 / 먹고가기-포장 오버레이 */
 .payment-overlay {
   position: fixed;
   inset: 0;
@@ -565,6 +565,37 @@ body {
   cursor: pointer;
 }
 
+.dine-type-box {
+  background: #1c1a2e;
+  padding: 40px 44px;
+  border-radius: 24px;
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.dine-type-box h3 { margin: 0 0 24px; font-size: 20px; }
+
+.dine-type-choices { display: flex; gap: 14px; }
+
+.dine-type-btn {
+  flex: 1;
+  padding: 28px 14px;
+  border-radius: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f8fafc;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.dine-type-btn:hover {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: transparent;
+}
+
 /* 큰 글자 모드 */
 .page.large { font-size: 1.15em; }
 .page.large .header h1,
@@ -619,6 +650,9 @@ body {
 .page.large .option-choice { font-size: 20px !important; padding: 18px 14px !important; }
 .page.large .options-price-row { font-size: 30px !important; }
 .page.large .checkout-btn { font-size: 28px !important; padding: 24px !important; }
+
+.page.large .dine-type-box h3 { font-size: 28px !important; }
+.page.large .dine-type-btn { font-size: 22px !important; padding: 36px 18px !important; }
 
 /* 고대비 모드 */
 .page.high-contrast {
@@ -759,7 +793,8 @@ body {
   color: #ffd400;
 }
 
-.page.high-contrast .options-box {
+.page.high-contrast .options-box,
+.page.high-contrast .dine-type-box {
   background: #000000;
   border: 3px solid #ffffff;
 }
@@ -779,10 +814,16 @@ body {
 .page.high-contrast .options-price-row {
   color: #ffd400;
 }
-.page.high-contrast .checkout-btn {
+.page.high-contrast .checkout-btn,
+.page.high-contrast .dine-type-btn:hover {
   background: #ffd400;
   color: #000000;
   border: 2px solid #ffd400;
+}
+.page.high-contrast .dine-type-btn {
+  background: #000000;
+  border: 2px solid #ffffff;
+  color: #ffffff;
 }
 
 .page.high-contrast .toast {
