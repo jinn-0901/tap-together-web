@@ -3,6 +3,7 @@ import "./App.css";
 import { CARD_LANGUAGES, SPEECH_LANG_MAP, isCardLanguage } from "./i18n/languages";
 import { matchVoiceCommand } from "./voice/voiceCommands";
 import { parseVoiceOrder, NOT_FOUND_MESSAGES } from "./voice/menuVoiceOrder";
+import { CATEGORIES, MENU, WHIP_AVAILABLE_IDS, FIXED_ICE_IDS, DEFAULT_OPTIONS, computeUnitPrice } from "./data/menu";
 import { io } from "socket.io-client";
 
 const SERVER_URL = process.env.REACT_APP_SERVER_URL || "http://localhost:4000";
@@ -26,7 +27,6 @@ const ERROR_CODE_KEY_MAP = {
   TOO_MANY_ATTEMPTS: "errorTooManyAttempts",
 };
 
-// URL에서 코드와 "공유 링크 여부"를 같이 읽어옴 (/코드?shared=1 형태)
 const getCodeFromPath = () => {
   const path = window.location.pathname.replace(/^\/|\/$/g, "");
   return /^\d{6}$/.test(path) ? path : null;
@@ -70,7 +70,7 @@ export default function App() {
   const [translationsData, setTranslationsData] = useState(null);
 
   const [connectedCode, setConnectedCode] = useState(null);
-  const [myRole, setMyRole] = useState(null); // "direct" | "shared"
+  const [myRole, setMyRole] = useState(null);
   const [inputCode, setInputCode] = useState("");
   const [connecting, setConnecting] = useState(!!urlCode);
   const [connectError, setConnectError] = useState(null);
@@ -92,6 +92,11 @@ export default function App() {
   const [toastMsg, setToastMsg] = useState(null);
 
   const [volume, setVolume] = useState(savedSettings?.volume ?? 0.8);
+
+  // 메뉴 주문(화면 버튼) 관련 상태
+  const [orderCategory, setOrderCategory] = useState("coffee");
+  const [orderOptionsFor, setOrderOptionsFor] = useState(null);
+  const [orderDraftOptions, setOrderDraftOptions] = useState(DEFAULT_OPTIONS);
 
   const matchedRef = useRef(false);
   const cancelledRef = useRef(false);
@@ -268,7 +273,7 @@ export default function App() {
     setConnecting(true);
     setConnectError(null);
     pendingCodeRef.current = inputCode;
-    socket.emit("join-room", inputCode, false); // 직접 입력은 항상 직접 연결로 취급
+    socket.emit("join-room", inputCode, false);
   };
 
   const handleDisconnect = () => {
@@ -287,7 +292,6 @@ export default function App() {
     pendingCodeRef.current = null;
   };
 
-  // 공유 링크 생성 및 복사/공유 시트 열기
   const handleShare = async () => {
     if (!connectedCode) return;
     const shareUrl = `${window.location.origin}/${connectedCode}?shared=1`;
@@ -296,7 +300,7 @@ export default function App() {
       try {
         await navigator.share({ url: shareUrl, title: t.pageTitle });
       } catch (err) {
-        // 사용자가 공유를 취소한 경우 등은 조용히 무시
+        // 취소 등은 조용히 무시
       }
       return;
     }
@@ -478,6 +482,25 @@ export default function App() {
     }
   };
 
+  // 화면 버튼으로 메뉴 옵션 선택 → 장바구니 담기
+  const openOrderOptions = (item) => {
+    setOrderOptionsFor(item);
+    setOrderDraftOptions(DEFAULT_OPTIONS);
+  };
+
+  const closeOrderOptions = () => setOrderOptionsFor(null);
+
+  const confirmOrder = () => {
+    if (!orderOptionsFor || !connectedCode) return;
+    socket.emit("remote-menu-order", {
+      code: connectedCode,
+      itemId: orderOptionsFor.id,
+      options: orderDraftOptions,
+    });
+    showToast(`${t.menu[orderOptionsFor.id]} ${t.addToCartBtn}`);
+    closeOrderOptions();
+  };
+
   const isLargeText = !!featureState["large-text"];
   const isHighContrast = !!featureState["high-contrast"];
   const pageClass = `page ${isLargeText ? "large" : ""} ${isHighContrast ? "high-contrast" : ""}`.trim();
@@ -533,6 +556,10 @@ export default function App() {
 
   const currentLang = CARD_LANGUAGES.find((l) => l.id === selectedLang);
   const isVoiceGuideOn = !!featureState["voice-guide"];
+  const filteredOrderMenu = MENU.filter((item) => item.category === orderCategory);
+  const isOrderWhipAvailable = orderOptionsFor ? WHIP_AVAILABLE_IDS.includes(orderOptionsFor.id) : false;
+  const isOrderHotIceAvailable = orderOptionsFor ? !FIXED_ICE_IDS.includes(orderOptionsFor.id) : false;
+  const hasMenuData = !!t.menu;
 
   return (
     <div className={pageClass}>
@@ -555,6 +582,32 @@ export default function App() {
         <div className="cart-summary-bar">
           🛒 {cartSummary}
         </div>
+      )}
+
+      {hasMenuData && (
+        <section className="order-section">
+          <h2 className="order-section-title">🍽️ {t.checkoutBtn ? "메뉴 주문" : "메뉴 주문"}</h2>
+          <div className="order-tabs">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                className={`order-tab ${orderCategory === cat ? "active" : ""}`}
+                onClick={() => setOrderCategory(cat)}
+              >
+                {t.categories[cat]}
+              </button>
+            ))}
+          </div>
+          <div className="order-menu-grid">
+            {filteredOrderMenu.map((item) => (
+              <button key={item.id} className="order-menu-item" onClick={() => openOrderOptions(item)}>
+                <span className="order-menu-icon">{item.icon}</span>
+                <span className="order-menu-name">{t.menu[item.id]}</span>
+                <span className="order-menu-price">{item.price.toLocaleString()}원~</span>
+              </button>
+            ))}
+          </div>
+        </section>
       )}
 
       <main className="grid">
@@ -657,6 +710,100 @@ export default function App() {
           );
         })}
       </main>
+
+      {orderOptionsFor && (
+        <div className="payment-overlay" onClick={closeOrderOptions}>
+          <div className="options-box" onClick={(e) => e.stopPropagation()}>
+            <button className="options-close-btn" onClick={closeOrderOptions} aria-label={t.closeBtn}>✕</button>
+            <div className="options-header">
+              <span className="options-icon">{orderOptionsFor.icon}</span>
+              <h3>{t.menu[orderOptionsFor.id]}</h3>
+            </div>
+
+            {isOrderHotIceAvailable && (
+              <div className="options-group">
+                <p className="options-group-label">{t.hotIceLabel}</p>
+                <div className="options-choice-row">
+                  <button
+                    className={`option-choice ${orderDraftOptions.hotIce === "hot" ? "selected" : ""}`}
+                    onClick={() => setOrderDraftOptions((prev) => ({ ...prev, hotIce: "hot" }))}
+                  >
+                    {t.hotOption}
+                  </button>
+                  <button
+                    className={`option-choice ${orderDraftOptions.hotIce === "ice" ? "selected" : ""}`}
+                    onClick={() => setOrderDraftOptions((prev) => ({ ...prev, hotIce: "ice" }))}
+                  >
+                    {t.iceOption}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="options-group">
+              <p className="options-group-label">{t.sizeLabel}</p>
+              <div className="options-choice-row">
+                <button
+                  className={`option-choice ${orderDraftOptions.size === "regular" ? "selected" : ""}`}
+                  onClick={() => setOrderDraftOptions((prev) => ({ ...prev, size: "regular" }))}
+                >
+                  {t.sizeRegular}
+                </button>
+                <button
+                  className={`option-choice ${orderDraftOptions.size === "large" ? "selected" : ""}`}
+                  onClick={() => setOrderDraftOptions((prev) => ({ ...prev, size: "large" }))}
+                >
+                  {t.sizeLarge}
+                </button>
+              </div>
+            </div>
+
+            <div className="options-group">
+              <p className="options-group-label">{t.toppingLabel}</p>
+              <div className="options-choice-row">
+                <button
+                  className={`option-choice ${orderDraftOptions.topping === "none" ? "selected" : ""}`}
+                  onClick={() => setOrderDraftOptions((prev) => ({ ...prev, topping: "none" }))}
+                >
+                  {t.toppingNone}
+                </button>
+                <button
+                  className={`option-choice ${orderDraftOptions.topping === "pearl" ? "selected" : ""}`}
+                  onClick={() => setOrderDraftOptions((prev) => ({ ...prev, topping: "pearl" }))}
+                >
+                  {t.toppingPearl}
+                </button>
+              </div>
+            </div>
+
+            {isOrderWhipAvailable && (
+              <div className="options-group">
+                <p className="options-group-label">{t.whipLabel}</p>
+                <div className="options-choice-row">
+                  <button
+                    className={`option-choice ${orderDraftOptions.whip === "none" ? "selected" : ""}`}
+                    onClick={() => setOrderDraftOptions((prev) => ({ ...prev, whip: "none" }))}
+                  >
+                    {t.whipNone}
+                  </button>
+                  <button
+                    className={`option-choice ${orderDraftOptions.whip === "add" ? "selected" : ""}`}
+                    onClick={() => setOrderDraftOptions((prev) => ({ ...prev, whip: "add" }))}
+                  >
+                    {t.whipAdd}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="options-price-row">
+              <span>{computeUnitPrice(orderOptionsFor, orderDraftOptions).toLocaleString()}원</span>
+            </div>
+
+            <button className="checkout-btn" onClick={confirmOrder}>{t.addToCartBtn}</button>
+          </div>
+        </div>
+      )}
 
       {listening && (
         <div className="voice-overlay">
