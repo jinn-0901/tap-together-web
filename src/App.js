@@ -75,7 +75,7 @@ export default function App() {
   const [connecting, setConnecting] = useState(!!urlCode);
   const [connectError, setConnectError] = useState(null);
 
-  const [cartSummary, setCartSummary] = useState("");
+  const [remoteCart, setRemoteCart] = useState([]);
   const [shareCopied, setShareCopied] = useState(false);
   const [showDineTypeChoice, setShowDineTypeChoice] = useState(false);
 
@@ -182,7 +182,7 @@ export default function App() {
       setMyRole(null);
       setConnecting(false);
       setInputCode("");
-      setCartSummary("");
+      setRemoteCart([]);
       window.history.pushState({}, "", "/");
     };
 
@@ -195,8 +195,8 @@ export default function App() {
       speak(message, langId);
     };
 
-    const onCartSummaryUpdated = ({ summaryText }) => {
-      setCartSummary(summaryText);
+    const onCartStateUpdated = ({ cart }) => {
+      setRemoteCart(cart);
     };
 
     socket.on("joined", onJoined);
@@ -204,7 +204,7 @@ export default function App() {
     socket.on("kiosk-left", onKioskLeft);
     socket.on("kiosk-code-changed", onKioskCodeChanged);
     socket.on("kiosk-activity", onKioskActivity);
-    socket.on("cart-summary-updated", onCartSummaryUpdated);
+    socket.on("cart-state-updated", onCartStateUpdated);
 
     return () => {
       socket.off("joined", onJoined);
@@ -212,7 +212,7 @@ export default function App() {
       socket.off("kiosk-left", onKioskLeft);
       socket.off("kiosk-code-changed", onKioskCodeChanged);
       socket.off("kiosk-activity", onKioskActivity);
-      socket.off("cart-summary-updated", onCartSummaryUpdated);
+      socket.off("cart-state-updated", onCartStateUpdated);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -288,7 +288,7 @@ export default function App() {
     setConnectError(null);
     setLangOpen(false);
     setToastMsg(null);
-    setCartSummary("");
+    setRemoteCart([]);
     pendingCodeRef.current = null;
   };
 
@@ -500,6 +500,21 @@ export default function App() {
     closeOrderOptions();
   };
 
+  const changeRemoteQty = (cartId, delta) => {
+    if (!connectedCode) return;
+    socket.emit("remote-change-qty", { code: connectedCode, cartId, delta });
+  };
+
+  const removeRemoteItem = (cartId) => {
+    if (!connectedCode) return;
+    socket.emit("remote-remove-item", { code: connectedCode, cartId });
+  };
+
+  const clearRemoteCart = () => {
+    if (!connectedCode) return;
+    socket.emit("remote-clear-cart", connectedCode);
+  };
+
   const handleRemoteCheckout = () => {
     if (!connectedCode) return;
     setShowDineTypeChoice(true);
@@ -588,15 +603,6 @@ export default function App() {
         )}
       </header>
 
-      {cartSummary && (
-        <div className="cart-summary-bar">
-          <span>🛒 {cartSummary}</span>
-          <button className="remote-checkout-btn" onClick={handleRemoteCheckout}>
-            결제하기
-          </button>
-        </div>
-      )}
-
       {hasMenuData && (
         <section className="order-section">
           <h2 className="order-section-title">🍽️ 메뉴 주문</h2>
@@ -619,6 +625,56 @@ export default function App() {
                 <span className="order-menu-price">{item.price.toLocaleString()}원~</span>
               </button>
             ))}
+          </div>
+        </section>
+      )}
+
+      {remoteCart.length > 0 && (
+        <section className="remote-cart-panel">
+          <div className="cart-header">
+            <h2>{t.cartTitle} <span className="cart-badge">{remoteCart.reduce((s, c) => s + c.qty, 0)}</span></h2>
+            <button className="clear-btn" onClick={clearRemoteCart}>{t.clearBtn}</button>
+          </div>
+
+          <div className="cart-list">
+            {remoteCart.map((c) => {
+              const menuItem = MENU.find((m) => m.id === c.id);
+              const parts = [];
+              if (!FIXED_ICE_IDS.includes(c.id)) parts.push(c.options.hotIce === "hot" ? t.hotOption : t.iceOption);
+              if (c.options.size === "large") parts.push(t.sizeLarge.replace(/\s*\(.*\)/, ""));
+              if (c.options.whip === "add") parts.push(t.whipAdd.replace(/\s*\(.*\)/, ""));
+              if (c.options.topping === "pearl") parts.push(t.toppingPearl.replace(/\s*\(.*\)/, ""));
+              const summary = parts.join(" · ");
+
+              return (
+                <div key={c.cartId} className="cart-item">
+                  <div className="cart-item-info">
+                    <span className="cart-item-icon">{menuItem?.icon}</span>
+                    <div>
+                      <p className="cart-item-name">{t.menu[c.id]}</p>
+                      {summary && <p className="cart-item-options">{summary}</p>}
+                      <p className="cart-item-price">{c.unitPrice.toLocaleString()}원</p>
+                    </div>
+                  </div>
+                  <div className="cart-item-actions">
+                    <div className="qty-controls">
+                      <button onClick={() => changeRemoteQty(c.cartId, -1)}>-</button>
+                      <span>{c.qty}</span>
+                      <button onClick={() => changeRemoteQty(c.cartId, 1)}>+</button>
+                    </div>
+                    <button className="remove-btn" onClick={() => removeRemoteItem(c.cartId)}>✕</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="cart-footer">
+            <div className="total-row">
+              <span>{format(t.totalCountLabel, { n: remoteCart.reduce((s, c) => s + c.qty, 0) })}</span>
+              <span className="total-price">{remoteCart.reduce((s, c) => s + c.unitPrice * c.qty, 0).toLocaleString()}원</span>
+            </div>
+            <button className="checkout-btn" onClick={handleRemoteCheckout}>{t.checkoutBtn}</button>
           </div>
         </section>
       )}
