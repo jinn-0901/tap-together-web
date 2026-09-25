@@ -223,6 +223,13 @@ body {
 }
 .clear-btn:hover { background: rgba(255, 255, 255, 0.08); }
 
+.cart-empty {
+  color: #64748b;
+  text-align: center;
+  padding: 20px 0;
+  font-size: 14px;
+}
+
 .cart-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
 
 .cart-item {
@@ -712,6 +719,7 @@ body {
 .page.large .remote-cart-panel .cart-header h2 { font-size: 26px !important; }
 .page.large .cart-badge { font-size: 18px !important; padding: 4px 12px !important; }
 .page.large .clear-btn { font-size: 18px !important; padding: 10px 16px !important; }
+.page.large .cart-empty { font-size: 22px !important; }
 .page.large .cart-item-name { font-size: 22px !important; }
 .page.large .cart-item-price { font-size: 18px !important; }
 .page.large .cart-item-icon { font-size: 32px !important; }
