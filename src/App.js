@@ -63,6 +63,8 @@ const saveSettings = (settings) => {
 const format = (template, vars) =>
   (template || "").replace(/\{(\w+)\}/g, (_, k) => (vars[k] !== undefined ? vars[k] : ""));
 
+const FALLBACK_LOADING_TEXT = "Loading...";
+
 export default function App() {
   const urlCode = getCodeFromPath();
   const urlIsShared = getIsSharedFromUrl();
@@ -377,7 +379,7 @@ export default function App() {
     return true;
   };
 
-  const handleVoiceClick = async () => {
+  const handleVoiceClick = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       showToast(t.notSupported);
@@ -387,14 +389,6 @@ export default function App() {
     if (recognitionRef.current) {
       recognitionRef.current.abort();
       recognitionRef.current = null;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((track) => track.stop());
-    } catch (err) {
-      showToast(t.notSupported);
-      return;
     }
 
     matchedRef.current = false;
@@ -408,6 +402,7 @@ export default function App() {
     recognition.lang = SPEECH_LANG_MAP[speechLangId] || "en-US";
 
     recognition.interimResults = true;
+    recognition.continuous = false;
     recognitionRef.current = recognition;
 
     recognition.onstart = () => {
@@ -438,6 +433,7 @@ export default function App() {
     };
 
     recognition.onerror = (e) => {
+      console.log("음성 인식 에러:", e.error);
       lastErrorRef.current = e.error;
     };
 
@@ -469,7 +465,12 @@ export default function App() {
       lastErrorRef.current = null;
     };
 
-    recognition.start();
+    try {
+      recognition.start();
+    } catch (err) {
+      console.log("recognition.start() 실패:", err);
+      showToast(t.notSupported);
+    }
   };
 
   const handleCancelVoice = () => {
@@ -523,7 +524,7 @@ export default function App() {
   const confirmRemoteCheckout = (dineType) => {
     socket.emit("remote-checkout-request", { code: connectedCode, dineType });
     setShowDineTypeChoice(false);
-    showToast("키오스크에서 결제가 완료됩니다");
+    showToast(t.remoteCheckoutToast);
   };
 
   const isLargeText = !!featureState["large-text"];
@@ -534,7 +535,7 @@ export default function App() {
     return (
       <div className={`${pageClass} center`}>
         <div className="connect-card">
-          <p>불러오는 중...</p>
+          <p>{FALLBACK_LOADING_TEXT}</p>
         </div>
       </div>
     );
@@ -594,20 +595,20 @@ export default function App() {
         <h1>{t.pageTitle}</h1>
         <p>{t.headerDesc}</p>
         <span className="status on">🟢 {t.connectedLabel} · {connectedCode}</span>
-        {myRole === "shared" && <span className="status shared-badge">🔗 공유로 참가함</span>}
+        {myRole === "shared" && <span className="status shared-badge">{t.sharedParticipantBadge}</span>}
         <button className="disconnect-btn" onClick={handleDisconnect}>
           {t.disconnectBtn}
         </button>
         {myRole === "direct" && (
           <button className="share-btn" onClick={handleShare}>
-            {shareCopied ? "✅ 복사됨" : "🔗 공유"}
+            {shareCopied ? "✅" : "🔗"}
           </button>
         )}
       </header>
 
       {hasMenuData && (
         <section className="order-section">
-          <h2 className="order-section-title">🍽️ 메뉴 주문</h2>
+          <h2 className="order-section-title">🍽️ {t.orderSectionTitle}</h2>
           <div className="order-tabs">
             {CATEGORIES.map((cat) => (
               <button
@@ -887,13 +888,13 @@ export default function App() {
       {showDineTypeChoice && (
         <div className="payment-overlay" onClick={() => setShowDineTypeChoice(false)}>
           <div className="dine-type-box" onClick={(e) => e.stopPropagation()}>
-            <h3>먹고 가시나요? 포장하시나요?</h3>
+            <h3>{t.dineTypeTitle}</h3>
             <div className="dine-type-choices">
               <button className="dine-type-btn" onClick={() => confirmRemoteCheckout("dine-in")}>
-                🍽️ 먹고 가기
+                🍽️ {t.dineIn}
               </button>
               <button className="dine-type-btn" onClick={() => confirmRemoteCheckout("takeout")}>
-                🥤 포장하기
+                🥤 {t.takeout}
               </button>
             </div>
           </div>
