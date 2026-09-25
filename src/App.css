@@ -116,34 +116,6 @@ body {
 }
 .share-btn:hover { background: rgba(74, 222, 128, 0.2); }
 
-.cart-summary-bar {
-  max-width: 960px;
-  margin: 0 auto 20px;
-  padding: 12px 20px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 14px;
-  color: #d6b98c;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.remote-checkout-btn {
-  padding: 8px 18px;
-  border-radius: 999px;
-  border: none;
-  background: linear-gradient(135deg, #4ade80, #22c55e);
-  color: #052e16;
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
 .order-section {
   max-width: 960px;
   margin: 0 auto 24px;
@@ -206,6 +178,103 @@ body {
 .order-menu-icon { font-size: 26px; }
 .order-menu-name { font-size: 14px; font-weight: 700; }
 .order-menu-price { font-size: 12px; color: #94a3b8; }
+
+/* 리모컨 상세 장바구니 패널 */
+.remote-cart-panel {
+  max-width: 960px;
+  margin: 0 auto 24px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 20px;
+}
+
+.remote-cart-panel .cart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.remote-cart-panel .cart-header h2 {
+  font-size: 18px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cart-badge {
+  background: #667eea;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.clear-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.clear-btn:hover { background: rgba(255, 255, 255, 0.08); }
+
+.cart-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+
+.cart-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+.cart-item-info { display: flex; align-items: center; gap: 10px; }
+.cart-item-icon { font-size: 22px; }
+.cart-item-name { margin: 0; font-size: 14px; font-weight: 700; }
+.cart-item-price { margin: 0; font-size: 12px; color: #a5b4fc; }
+.cart-item-options { margin: 2px 0; font-size: 11px; color: #94a3b8; }
+.cart-item-actions { display: flex; align-items: center; gap: 10px; }
+
+.qty-controls { display: flex; align-items: center; gap: 8px; }
+.qty-controls button {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: none;
+  background: #667eea;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+.qty-controls span { min-width: 18px; text-align: center; font-weight: 700; }
+
+.remove-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.cart-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 14px;
+}
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+.total-price { font-weight: 800; font-size: 18px; color: #a5b4fc; }
 
 .grid {
   display: grid;
@@ -633,15 +702,24 @@ body {
 .page.large .connect-card { padding: 64px !important; max-width: 600px !important; }
 .page.large .connect-box { gap: 20px !important; }
 
-.page.large .cart-summary-bar { font-size: 24px !important; padding: 20px 28px !important; }
-.page.large .remote-checkout-btn { font-size: 20px !important; padding: 14px 26px !important; }
-
 .page.large .order-section-title { font-size: 32px !important; }
 .page.large .order-tab { font-size: 24px !important; padding: 18px 28px !important; }
 .page.large .order-menu-item { padding: 28px 14px !important; }
 .page.large .order-menu-icon { font-size: 44px !important; }
 .page.large .order-menu-name { font-size: 24px !important; }
 .page.large .order-menu-price { font-size: 20px !important; }
+
+.page.large .remote-cart-panel .cart-header h2 { font-size: 26px !important; }
+.page.large .cart-badge { font-size: 18px !important; padding: 4px 12px !important; }
+.page.large .clear-btn { font-size: 18px !important; padding: 10px 16px !important; }
+.page.large .cart-item-name { font-size: 22px !important; }
+.page.large .cart-item-price { font-size: 18px !important; }
+.page.large .cart-item-icon { font-size: 32px !important; }
+.page.large .qty-controls button { width: 38px !important; height: 38px !important; font-size: 22px !important; }
+.page.large .qty-controls span { font-size: 22px !important; }
+.page.large .remove-btn { width: 34px !important; height: 34px !important; font-size: 18px !important; }
+.page.large .total-row { font-size: 22px !important; }
+.page.large .total-price { font-size: 28px !important; }
 
 .page.large .options-box { padding: 48px 52px !important; max-width: 480px !important; }
 .page.large .options-header h3 { font-size: 28px !important; }
@@ -756,19 +834,8 @@ body {
   color: #a5b4fc;
 }
 
-.page.high-contrast .cart-summary-bar {
-  background: #000000;
-  border: 2px solid #ffffff;
-  color: #ffd400;
-}
-
-.page.high-contrast .remote-checkout-btn {
-  background: #ffd400;
-  color: #000000;
-  border: 2px solid #ffd400;
-}
-
-.page.high-contrast .order-section {
+.page.high-contrast .order-section,
+.page.high-contrast .remote-cart-panel {
   background: #000000;
   border: 2px solid #ffffff;
 }
@@ -784,12 +851,34 @@ body {
   border-color: #ffd400;
 }
 
-.page.high-contrast .order-menu-item {
+.page.high-contrast .order-menu-item,
+.page.high-contrast .cart-item {
   background: #000000;
   border: 2px solid #ffffff;
   color: #ffffff;
 }
-.page.high-contrast .order-menu-price {
+.page.high-contrast .order-menu-price,
+.page.high-contrast .cart-item-price {
+  color: #ffd400;
+}
+
+.page.high-contrast .cart-badge {
+  background: #ffd400;
+  color: #000000;
+}
+
+.page.high-contrast .qty-controls button {
+  background: #ffd400;
+  color: #000000;
+}
+
+.page.high-contrast .remove-btn {
+  background: #000000;
+  border: 2px solid #f87171;
+  color: #f87171;
+}
+
+.page.high-contrast .total-price {
   color: #ffd400;
 }
 
@@ -814,8 +903,7 @@ body {
 .page.high-contrast .options-price-row {
   color: #ffd400;
 }
-.page.high-contrast .checkout-btn,
-.page.high-contrast .dine-type-btn:hover {
+.page.high-contrast .checkout-btn {
   background: #ffd400;
   color: #000000;
   border: 2px solid #ffd400;
@@ -824,6 +912,10 @@ body {
   background: #000000;
   border: 2px solid #ffffff;
   color: #ffffff;
+}
+.page.high-contrast .dine-type-btn:hover {
+  background: #ffd400;
+  color: #000000;
 }
 
 .page.high-contrast .toast {
