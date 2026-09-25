@@ -77,6 +77,7 @@ export default function App() {
 
   const [cartSummary, setCartSummary] = useState("");
   const [shareCopied, setShareCopied] = useState(false);
+  const [showDineTypeChoice, setShowDineTypeChoice] = useState(false);
 
   const savedSettings = useRef(loadSavedSettings()).current;
 
@@ -499,11 +500,15 @@ export default function App() {
     closeOrderOptions();
   };
 
-  // 결제 시작 요청 — 실제 결제 진행은 키오스크에서만
   const handleRemoteCheckout = () => {
     if (!connectedCode) return;
-    socket.emit("remote-checkout-request", connectedCode);
-    showToast("키오스크에서 결제를 진행해주세요");
+    setShowDineTypeChoice(true);
+  };
+
+  const confirmRemoteCheckout = (dineType) => {
+    socket.emit("remote-checkout-request", { code: connectedCode, dineType });
+    setShowDineTypeChoice(false);
+    showToast("키오스크에서 결제가 완료됩니다");
   };
 
   const isLargeText = !!featureState["large-text"];
@@ -809,6 +814,22 @@ export default function App() {
             </div>
 
             <button className="checkout-btn" onClick={confirmOrder}>{t.addToCartBtn}</button>
+          </div>
+        </div>
+      )}
+
+      {showDineTypeChoice && (
+        <div className="payment-overlay" onClick={() => setShowDineTypeChoice(false)}>
+          <div className="dine-type-box" onClick={(e) => e.stopPropagation()}>
+            <h3>먹고 가시나요? 포장하시나요?</h3>
+            <div className="dine-type-choices">
+              <button className="dine-type-btn" onClick={() => confirmRemoteCheckout("dine-in")}>
+                🍽️ 먹고 가기
+              </button>
+              <button className="dine-type-btn" onClick={() => confirmRemoteCheckout("takeout")}>
+                🥤 포장하기
+              </button>
+            </div>
           </div>
         </div>
       )}
