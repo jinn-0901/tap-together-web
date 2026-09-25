@@ -93,7 +93,6 @@ export default function App() {
 
   const [volume, setVolume] = useState(savedSettings?.volume ?? 0.8);
 
-  // 메뉴 주문(화면 버튼) 관련 상태
   const [orderCategory, setOrderCategory] = useState("coffee");
   const [orderOptionsFor, setOrderOptionsFor] = useState(null);
   const [orderDraftOptions, setOrderDraftOptions] = useState(DEFAULT_OPTIONS);
@@ -482,7 +481,6 @@ export default function App() {
     }
   };
 
-  // 화면 버튼으로 메뉴 옵션 선택 → 장바구니 담기
   const openOrderOptions = (item) => {
     setOrderOptionsFor(item);
     setOrderDraftOptions(DEFAULT_OPTIONS);
@@ -499,6 +497,13 @@ export default function App() {
     });
     showToast(`${t.menu[orderOptionsFor.id]} ${t.addToCartBtn}`);
     closeOrderOptions();
+  };
+
+  // 결제 시작 요청 — 실제 결제 진행은 키오스크에서만
+  const handleRemoteCheckout = () => {
+    if (!connectedCode) return;
+    socket.emit("remote-checkout-request", connectedCode);
+    showToast("키오스크에서 결제를 진행해주세요");
   };
 
   const isLargeText = !!featureState["large-text"];
@@ -580,13 +585,16 @@ export default function App() {
 
       {cartSummary && (
         <div className="cart-summary-bar">
-          🛒 {cartSummary}
+          <span>🛒 {cartSummary}</span>
+          <button className="remote-checkout-btn" onClick={handleRemoteCheckout}>
+            결제하기
+          </button>
         </div>
       )}
 
       {hasMenuData && (
         <section className="order-section">
-          <h2 className="order-section-title">🍽️ {t.checkoutBtn ? "메뉴 주문" : "메뉴 주문"}</h2>
+          <h2 className="order-section-title">🍽️ 메뉴 주문</h2>
           <div className="order-tabs">
             {CATEGORIES.map((cat) => (
               <button
