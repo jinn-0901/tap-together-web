@@ -489,6 +489,7 @@ export default function App() {
   const openOrderOptions = (item) => {
     setOrderOptionsFor(item);
     setOrderDraftOptions(DEFAULT_OPTIONS);
+    speak(t.menu[item.id]);
   };
 
   const closeOrderOptions = () => setOrderOptionsFor(null);
