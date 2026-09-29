@@ -129,6 +129,8 @@ export default function App() {
 
   useEffect(() => {
     selectedLangRef.current = selectedLang;
+    // 스크린리더가 올바른 언어 발음 규칙으로 화면을 읽도록 문서 언어도 같이 바꿈
+    document.documentElement.lang = (SPEECH_LANG_MAP[selectedLang] || selectedLang).split("-")[0];
   }, [selectedLang]);
 
   useEffect(() => {
@@ -199,7 +201,9 @@ export default function App() {
     };
 
     const onKioskActivity = ({ message, langId }) => {
-      speak(message, langId);
+      // speak()뿐 아니라 화면에도 같이 띄워서(aria-live) 스크린리더/청각장애 사용자도
+      // 키오스크에서 일어난 일을 놓치지 않게 함
+      showToast(message, langId);
     };
 
     const onCartStateUpdated = ({ cart }) => {
@@ -495,6 +499,20 @@ export default function App() {
 
   const closeOrderOptions = () => setOrderOptionsFor(null);
 
+  // 옵션/포장선택/음성인식 창이 열려있을 때 Esc로도 닫을 수 있게
+  useEffect(() => {
+    if (!orderOptionsFor && !showDineTypeChoice && !listening) return;
+    const onKeyDown = (e) => {
+      if (e.key !== "Escape") return;
+      if (orderOptionsFor) closeOrderOptions();
+      if (showDineTypeChoice) setShowDineTypeChoice(false);
+      if (listening) handleCancelVoice();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderOptionsFor, showDineTypeChoice, listening]);
+
   const confirmOrder = () => {
     if (!orderOptionsFor || !connectedCode) return;
     socket.emit("remote-menu-order", {
@@ -620,6 +638,7 @@ export default function App() {
               <button
                 key={cat}
                 className={`order-tab ${orderCategory === cat ? "active" : ""}`}
+                aria-pressed={orderCategory === cat}
                 onClick={() => setOrderCategory(cat)}
               >
                 {t.categories[cat]}
@@ -692,11 +711,11 @@ export default function App() {
                       </div>
                       <div className="cart-item-actions">
                         <div className="qty-controls">
-                          <button onClick={() => changeRemoteQty(c.cartId, -1)}>-</button>
+                          <button aria-label={t.qtyDecreaseLabel} onClick={() => changeRemoteQty(c.cartId, -1)}>-</button>
                           <span>{c.qty}</span>
-                          <button onClick={() => changeRemoteQty(c.cartId, 1)}>+</button>
+                          <button aria-label={t.qtyIncreaseLabel} onClick={() => changeRemoteQty(c.cartId, 1)}>+</button>
                         </div>
-                        <button className="remove-btn" onClick={() => removeRemoteItem(c.cartId)}>✕</button>
+                        <button className="remove-btn" aria-label={t.removeItemLabel} onClick={() => removeRemoteItem(c.cartId)}>✕</button>
                       </div>
                     </div>
                   );
@@ -738,6 +757,7 @@ export default function App() {
                 <button
                   key={lang.id}
                   className={`lang-option ${selectedLang === lang.id ? "selected" : ""}`}
+                  aria-pressed={selectedLang === lang.id}
                   onClick={() => handleSelectLang(lang)}
                 >
                   <span className="lang-flag">{lang.flag}</span>
@@ -762,7 +782,7 @@ export default function App() {
         </button>
 
         <div className={`card ${isVoiceGuideOn ? "on" : ""}`}>
-          <button className="voice-guide-toggle" onClick={() => toggleFeature("voice-guide")}>
+          <button className="voice-guide-toggle" aria-pressed={isVoiceGuideOn} onClick={() => toggleFeature("voice-guide")}>
             <div className="card-top">
               <span className="icon">{TOGGLE_FEATURE_ICONS["voice-guide"]}</span>
               <span className={`switch ${isVoiceGuideOn ? "on" : ""}`}>
@@ -800,6 +820,7 @@ export default function App() {
             <button
               key={id}
               className={`card ${isOn ? "on" : ""}`}
+              aria-pressed={isOn}
               onClick={() => toggleFeature(id)}
             >
               <div className="card-top">
@@ -818,7 +839,13 @@ export default function App() {
 
       {orderOptionsFor && (
         <div className="payment-overlay" onClick={closeOrderOptions}>
-          <div className="options-box" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="options-box"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t.menu[orderOptionsFor.id]}
+            onClick={(e) => e.stopPropagation()}
+          >
             <button className="options-close-btn" onClick={closeOrderOptions} aria-label={t.closeBtn}>✕</button>
             <div className="options-header">
               <span className="options-icon">{orderOptionsFor.icon}</span>
@@ -912,7 +939,13 @@ export default function App() {
 
       {showDineTypeChoice && (
         <div className="payment-overlay" onClick={() => setShowDineTypeChoice(false)}>
-          <div className="dine-type-box" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="dine-type-box"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t.dineTypeTitle}
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3>{t.dineTypeTitle}</h3>
             <div className="dine-type-choices">
               <button className="dine-type-btn" onClick={() => confirmRemoteCheckout("dine-in")}>
@@ -928,7 +961,7 @@ export default function App() {
 
       {listening && (
         <div className="voice-overlay">
-          <div className="voice-box">
+          <div className="voice-box" role="dialog" aria-modal="true" aria-label={t.listening}>
             <button className="voice-close-btn" onClick={handleCancelVoice} aria-label="close">
               ✕
             </button>
@@ -939,7 +972,11 @@ export default function App() {
         </div>
       )}
 
-      {toastMsg && <p className="toast">{toastMsg}</p>}
+      {toastMsg && (
+        <p className="toast" role="status" aria-live="polite">
+          {toastMsg}
+        </p>
+      )}
     </div>
   );
 }
