@@ -65,6 +65,12 @@ const format = (template, vars) =>
 
 const FALLBACK_LOADING_TEXT = "Loading...";
 
+// 음성 안내 기본값 — 저장된 설정이 있으면 그걸 따르고, 없으면 켜짐으로 시작 (키오스크와 동일하게)
+const buildDefaultFeatureState = (saved) => {
+  const base = { "voice-guide": true };
+  return saved ? { ...base, ...saved } : base;
+};
+
 export default function App() {
   const urlCode = getCodeFromPath();
   const urlIsShared = getIsSharedFromUrl();
@@ -83,7 +89,7 @@ export default function App() {
 
   const savedSettings = useRef(loadSavedSettings()).current;
 
-  const [featureState, setFeatureState] = useState(savedSettings?.featureState || {});
+  const [featureState, setFeatureState] = useState(buildDefaultFeatureState(savedSettings?.featureState));
   const [selectedLang, setSelectedLang] = useState(
     savedSettings?.selectedLang || detectBrowserLanguage()
   );
@@ -104,7 +110,7 @@ export default function App() {
   const cancelledRef = useRef(false);
   const recognitionRef = useRef(null);
   const lastErrorRef = useRef(null);
-  const voiceGuideRef = useRef(false);
+  const voiceGuideRef = useRef(true);
   const volumeRef = useRef(savedSettings?.volume ?? 0.8);
   const pendingCodeRef = useRef(null);
   const connectedCodeRef = useRef(null);
@@ -264,6 +270,12 @@ export default function App() {
     setTimeout(() => setToastMsg(null), 2500);
   };
 
+  // 화면에만 표시하고 소리는 내지 않음 — 키오스크가 실제 반영 후 스스로/직접연결자에게 안내하므로 중복 방지용
+  const showToastVisualOnly = (message) => {
+    setToastMsg(message);
+    setTimeout(() => setToastMsg(null), 2500);
+  };
+
   const handleCodeChange = (e) => {
     const onlyDigits = e.target.value.replace(/[^0-9]/g, "").slice(0, 6);
     setInputCode(onlyDigits);
@@ -375,7 +387,8 @@ export default function App() {
       options,
       wantsToBuy,
     });
-    showToast(`${t.menu[item.id]} ${wantsToBuy ? "🛒" : ""}`);
+    // 키오스크가 실제로 담고 나서 안내하므로, 여기서는 화면 표시만 하고 소리는 안 냄
+    showToastVisualOnly(`${t.menu[item.id]} ${wantsToBuy ? "🛒" : ""}`);
     return true;
   };
 
@@ -433,7 +446,6 @@ export default function App() {
     };
 
     recognition.onerror = (e) => {
-      console.log("음성 인식 에러:", e.error);
       lastErrorRef.current = e.error;
     };
 
@@ -468,7 +480,6 @@ export default function App() {
     try {
       recognition.start();
     } catch (err) {
-      console.log("recognition.start() 실패:", err);
       showToast(t.notSupported);
     }
   };
@@ -497,7 +508,8 @@ export default function App() {
       itemId: orderOptionsFor.id,
       options: orderDraftOptions,
     });
-    showToast(`${t.menu[orderOptionsFor.id]} ${t.addToCartBtn}`);
+    // 키오스크가 실제로 담고 나서 안내하므로, 여기서는 화면 표시만 하고 소리는 안 냄
+    showToastVisualOnly(`${t.menu[orderOptionsFor.id]} ${t.addToCartBtn}`);
     closeOrderOptions();
   };
 
@@ -524,7 +536,8 @@ export default function App() {
   const confirmRemoteCheckout = (dineType) => {
     socket.emit("remote-checkout-request", { code: connectedCode, dineType });
     setShowDineTypeChoice(false);
-    showToast(t.remoteCheckoutToast);
+    // 키오스크가 곧바로 결제완료 안내를 하므로, 여기서는 화면 표시만 하고 소리는 안 냄
+    showToastVisualOnly(t.remoteCheckoutToast);
   };
 
   const isLargeText = !!featureState["large-text"];
