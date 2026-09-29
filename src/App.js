@@ -254,13 +254,14 @@ export default function App() {
     if (!voiceGuideRef.current) return;
     if (!window.speechSynthesis) return;
 
+    // 클릭(사용자 제스처) 직후 바로 재생해야 함 — setTimeout 등으로 지연시키면
+    // 일부 모바일 브라우저(특히 iOS Safari)가 사용자 제스처로 인정하지 않아서
+    // 조용히 재생을 막아버림. cancel()은 동기 호출이라 바로 이어서 speak해도 안전함.
     window.speechSynthesis.cancel();
-    setTimeout(() => {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = SPEECH_LANG_MAP[langId || selectedLang] || "ko-KR";
-      utterance.volume = volumeRef.current;
-      window.speechSynthesis.speak(utterance);
-    }, 50);
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = SPEECH_LANG_MAP[langId || selectedLang] || "ko-KR";
+    utterance.volume = volumeRef.current;
+    window.speechSynthesis.speak(utterance);
   };
 
   const showToast = (message, langId) => {
