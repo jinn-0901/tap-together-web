@@ -389,7 +389,7 @@ export default function App() {
     return true;
   };
 
-  // ── 음성 인식: 순수 버전 (방어 로직 없음) ──
+  // ── 음성 인식: 모든 방어 기술 적용 버전 ──
   const handleVoiceClick = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -397,8 +397,17 @@ export default function App() {
       return;
     }
 
+    // 이전 인식 세션 완전히 정리 (네이버 브라우저 등에서 두 번째부터 안 되는 문제 방지)
     if (recognitionRef.current) {
-      recognitionRef.current.abort();
+      try {
+        recognitionRef.current.onend = null;
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onstart = null;
+        recognitionRef.current.abort();
+      } catch (err) {
+        // 무시
+      }
       recognitionRef.current = null;
     }
 
@@ -406,16 +415,40 @@ export default function App() {
     lastErrorRef.current = null;
     cancelledRef.current = false;
 
-    const recognition = new SpeechRecognition();
+    let recognition;
+    try {
+      recognition = new SpeechRecognition();
+    } catch (err) {
+      showToast(t.notSupported);
+      return;
+    }
 
     const browserLangCode = (navigator.language || "en").split("-")[0].toLowerCase();
     const speechLangId = isCardLanguage(browserLangCode) ? browserLangCode : "en";
     recognition.lang = SPEECH_LANG_MAP[speechLangId] || "en-US";
 
     recognition.interimResults = true;
-    recognitionRef.current = recognition;
+    recognition.continuous = false;
+    recognition.maxAlternatives = 1;
+
+    // onstart가 일정 시간 안에 안 오면(iOS Safari 등) 지원 안 되는 걸로 간주하고 정리
+    let didStart = false;
+    const startTimeout = setTimeout(() => {
+      if (!didStart) {
+        try {
+          recognition.abort();
+        } catch (err) {
+          // 무시
+        }
+        recognitionRef.current = null;
+        setListening(false);
+        showToast(t.notSupported);
+      }
+    }, 2000);
 
     recognition.onstart = () => {
+      didStart = true;
+      clearTimeout(startTimeout);
       setListening(true);
       setLiveTranscript("");
     };
@@ -447,6 +480,7 @@ export default function App() {
     };
 
     recognition.onend = () => {
+      clearTimeout(startTimeout);
       recognitionRef.current = null;
       setListening(false);
       setLiveTranscript("");
@@ -462,6 +496,10 @@ export default function App() {
         return;
       }
 
+      if (!didStart) {
+        return;
+      }
+
       if (
         lastErrorRef.current === "not-allowed" ||
         lastErrorRef.current === "audio-capture" ||
@@ -474,7 +512,15 @@ export default function App() {
       lastErrorRef.current = null;
     };
 
-    recognition.start();
+    recognitionRef.current = recognition;
+
+    try {
+      recognition.start();
+    } catch (err) {
+      clearTimeout(startTimeout);
+      recognitionRef.current = null;
+      showToast(t.notSupported);
+    }
   };
 
   const handleCancelVoice = () => {
