@@ -179,13 +179,22 @@ body {
 .order-menu-name { font-size: 14px; font-weight: 700; }
 .order-menu-price { font-size: 12px; color: #94a3b8; }
 
-/* 쉬운 화면 모드: 실제 메뉴 사진 */
-.order-menu-photo {
+/* 쉬운 화면 모드: 실제 메뉴 사진 — 원본 비율(세로/가로 사진 다 섞여있음)을 유지한 채
+   박스 안에 전체가 다 보이게(object-fit: contain) 해서 잘리지 않도록 함 */
+.order-menu-photo-wrap {
+  display: block;
   width: 100%;
   height: 90px;
-  object-fit: cover;
   border-radius: 10px;
   margin-bottom: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.order-menu-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 .order-menu-item.easy {
   padding-bottom: 12px;
@@ -193,7 +202,7 @@ body {
 .order-menu-item.easy .order-menu-name {
   font-size: 16px;
 }
-.page.large .order-menu-photo { height: 130px !important; }
+.page.large .order-menu-photo-wrap { height: 130px !important; }
 
 /* 리모컨 상세 장바구니 패널 */
 .remote-cart-panel {

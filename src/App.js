@@ -632,15 +632,17 @@ export default function App() {
                 onClick={() => openOrderOptions(item)}
               >
                 {isEasyMode ? (
-                  <img
-                    className="order-menu-photo"
-                    src={getMenuImageUrl(SERVER_URL, item.id)}
-                    alt={t.menu[item.id]}
-                    onError={(e) => {
-                      e.target.style.display = "none";
-                      e.target.nextSibling.style.display = "block";
-                    }}
-                  />
+                  <span className="order-menu-photo-wrap">
+                    <img
+                      className="order-menu-photo"
+                      src={getMenuImageUrl(SERVER_URL, item.id)}
+                      alt={t.menu[item.id]}
+                      onError={(e) => {
+                        e.target.parentElement.style.display = "none";
+                        e.target.parentElement.nextSibling.style.display = "block";
+                      }}
+                    />
+                  </span>
                 ) : null}
                 <span className="order-menu-icon" style={isEasyMode ? { display: "none" } : undefined}>
                   {item.icon}
