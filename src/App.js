@@ -3,7 +3,7 @@ import "./App.css";
 import { CARD_LANGUAGES, SPEECH_LANG_MAP, isCardLanguage } from "./i18n/languages";
 import { matchVoiceCommand } from "./voice/voiceCommands";
 import { parseVoiceOrder, NOT_FOUND_MESSAGES } from "./voice/menuVoiceOrder";
-import { CATEGORIES, MENU, WHIP_AVAILABLE_IDS, FIXED_ICE_IDS, DEFAULT_OPTIONS, computeUnitPrice } from "./data/menu";
+import { CATEGORIES, MENU, WHIP_AVAILABLE_IDS, FIXED_ICE_IDS, DEFAULT_OPTIONS, computeUnitPrice, getMenuImageUrl } from "./data/menu";
 import { io } from "socket.io-client";
 
 const SERVER_URL = process.env.REACT_APP_SERVER_URL || "http://localhost:4000";
@@ -585,6 +585,7 @@ export default function App() {
 
   const currentLang = CARD_LANGUAGES.find((l) => l.id === selectedLang);
   const isVoiceGuideOn = !!featureState["voice-guide"];
+  const isEasyMode = !!featureState["easy-mode"];
   const filteredOrderMenu = MENU.filter((item) => item.category === orderCategory);
   const isOrderWhipAvailable = orderOptionsFor ? WHIP_AVAILABLE_IDS.includes(orderOptionsFor.id) : false;
   const isOrderHotIceAvailable = orderOptionsFor ? !FIXED_ICE_IDS.includes(orderOptionsFor.id) : false;
@@ -625,8 +626,25 @@ export default function App() {
           </div>
           <div className="order-menu-grid">
             {filteredOrderMenu.map((item) => (
-              <button key={item.id} className="order-menu-item" onClick={() => openOrderOptions(item)}>
-                <span className="order-menu-icon">{item.icon}</span>
+              <button
+                key={item.id}
+                className={`order-menu-item ${isEasyMode ? "easy" : ""}`}
+                onClick={() => openOrderOptions(item)}
+              >
+                {isEasyMode ? (
+                  <img
+                    className="order-menu-photo"
+                    src={getMenuImageUrl(SERVER_URL, item.id)}
+                    alt={t.menu[item.id]}
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                      e.target.nextSibling.style.display = "block";
+                    }}
+                  />
+                ) : null}
+                <span className="order-menu-icon" style={isEasyMode ? { display: "none" } : undefined}>
+                  {item.icon}
+                </span>
                 <span className="order-menu-name">{t.menu[item.id]}</span>
                 <span className="order-menu-price">{item.price.toLocaleString()}원~</span>
               </button>

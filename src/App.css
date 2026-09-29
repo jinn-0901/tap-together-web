@@ -179,6 +179,22 @@ body {
 .order-menu-name { font-size: 14px; font-weight: 700; }
 .order-menu-price { font-size: 12px; color: #94a3b8; }
 
+/* 쉬운 화면 모드: 실제 메뉴 사진 */
+.order-menu-photo {
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 4px;
+}
+.order-menu-item.easy {
+  padding-bottom: 12px;
+}
+.order-menu-item.easy .order-menu-name {
+  font-size: 16px;
+}
+.page.large .order-menu-photo { height: 130px !important; }
+
 /* 리모컨 상세 장바구니 패널 */
 .remote-cart-panel {
   max-width: 960px;

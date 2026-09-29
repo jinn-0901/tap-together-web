@@ -18,6 +18,9 @@ export const ADDON_PRICE = { sizeLarge: 500, whip: 500, toppingPearl: 500 };
 
 export const DEFAULT_OPTIONS = { size: "regular", whip: "none", topping: "none", hotIce: "hot" };
 
+// 쉬운 화면 모드에서 쓸 실제 메뉴 사진 URL (없으면 프론트에서 자동으로 이모지로 대체됨)
+export const getMenuImageUrl = (serverUrl, itemId) => `${serverUrl}/menu-images/${itemId}.jpg`;
+
 export const computeUnitPrice = (item, options) =>
   item.price +
   (options.size === "large" ? ADDON_PRICE.sizeLarge : 0) +
