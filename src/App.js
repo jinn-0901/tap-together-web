@@ -334,7 +334,8 @@ export default function App() {
 
   // 서버가 발급한 진짜 공유 토큰을 받아와서 링크에 붙임 — 그냥 ?shared=1만 붙이면
   // 코드를 아는 아무나 주소창에 타이핑해서 공유로 들어올 수 있어서, 이 토큰이 없으면
-  // 서버가 공유 요청을 무시하고 direct 요청으로 처리함(그래도 direct가 차있으면 자동 공유 전환)
+  // 서버가 공유 요청을 direct 요청으로 취급하고, 그마저 direct가 이미 차있으면 그냥
+  // ALREADY_CONNECTED로 튕겨냄(자동으로 공유 전환되지 않음 — 진짜 공유 링크만 통과)
   const requestShareToken = (code) =>
     new Promise((resolve) => {
       const onIssued = ({ code: issuedCode, token }) => {
