@@ -121,6 +121,7 @@ export default function App() {
   const volumeRef = useRef(savedSettings?.volume ?? 0.8);
   const pendingCodeRef = useRef(null);
   const connectedCodeRef = useRef(null);
+  const myRoleRef = useRef(null);
   const selectedLangRef = useRef(selectedLang);
   // 공유 링크로 들어왔으면 그 토큰을 들고 있다가 새로고침 시 재사용하고,
   // direct로 연결된 사람이 공유 버튼을 누르면 서버에서 새로 발급받아 채움
@@ -137,6 +138,28 @@ export default function App() {
   useEffect(() => {
     connectedCodeRef.current = connectedCode;
   }, [connectedCode]);
+
+  useEffect(() => {
+    myRoleRef.current = myRole;
+  }, [myRole]);
+
+  // 와이파이가 잠깐 끊겼다 소켓이 재연결되는 경우: 서버는 연결이 끊기는 순간
+  // 이미 이 방에서 나간 것으로 처리해버리므로(disconnect 핸들러), 재연결되자마자
+  // 같은 코드·같은 역할로 조용히 다시 join하지 않으면 화면은 계속 "연결됨"으로
+  // 보이는데 서버는 이 소켓을 모르는 상태로 어긋나버림
+  useEffect(() => {
+    const onReconnect = () => {
+      const code = connectedCodeRef.current;
+      if (!code) return;
+
+      pendingCodeRef.current = code;
+      const wantsShared = myRoleRef.current === "shared";
+      socket.emit("join-room", code, wantsShared, wantsShared ? shareTokenRef.current : null);
+    };
+
+    socket.on("connect", onReconnect);
+    return () => socket.off("connect", onReconnect);
+  }, []);
 
   useEffect(() => {
     selectedLangRef.current = selectedLang;
