@@ -37,6 +37,13 @@ const getIsSharedFromUrl = () => {
   return params.get("shared") === "1";
 };
 
+// shared=1만으로는 아무나 주소창에 직접 붙여넣어도 공유로 들어와지므로,
+// 서버가 발급한 토큰(st)이 같이 있어야만 진짜 "공유받은 링크"로 인정함
+const getShareTokenFromUrl = () => {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("st") || null;
+};
+
 const detectBrowserLanguage = () => {
   const browserLang = navigator.language || navigator.userLanguage || "en";
   const langCode = browserLang.split("-")[0].toLowerCase();
@@ -73,6 +80,7 @@ const buildDefaultFeatureState = (saved) => {
 export default function App() {
   const urlCode = getCodeFromPath();
   const urlIsShared = getIsSharedFromUrl();
+  const urlShareToken = getShareTokenFromUrl();
 
   const [translationsData, setTranslationsData] = useState(null);
 
@@ -114,6 +122,9 @@ export default function App() {
   const pendingCodeRef = useRef(null);
   const connectedCodeRef = useRef(null);
   const selectedLangRef = useRef(selectedLang);
+  // 공유 링크로 들어왔으면 그 토큰을 들고 있다가 새로고침 시 재사용하고,
+  // direct로 연결된 사람이 공유 버튼을 누르면 서버에서 새로 발급받아 채움
+  const shareTokenRef = useRef(urlShareToken);
   const tRef = useRef(null);
 
   useEffect(() => {
@@ -173,7 +184,8 @@ export default function App() {
       setMyRole(role);
       setConnecting(false);
       setConnectError(null);
-      window.history.pushState({}, "", role === "shared" ? `/${code}?shared=1` : `/${code}`);
+      const sharedSuffix = shareTokenRef.current ? `?shared=1&st=${shareTokenRef.current}` : "?shared=1";
+      window.history.pushState({}, "", role === "shared" ? `/${code}${sharedSuffix}` : `/${code}`);
       socket.emit("set-language", { code, lang: selectedLangRef.current });
     };
 
@@ -192,6 +204,7 @@ export default function App() {
       setConnecting(false);
       setInputCode("");
       setRemoteCart([]);
+      shareTokenRef.current = null;
       window.history.pushState({}, "", "/");
     };
 
@@ -240,7 +253,7 @@ export default function App() {
   useEffect(() => {
     if (urlCode) {
       pendingCodeRef.current = urlCode;
-      socket.emit("join-room", urlCode, urlIsShared);
+      socket.emit("join-room", urlCode, urlIsShared, urlShareToken);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlCode]);
@@ -316,11 +329,40 @@ export default function App() {
     setToastMsg(null);
     setRemoteCart([]);
     pendingCodeRef.current = null;
+    shareTokenRef.current = null;
   };
+
+  // 서버가 발급한 진짜 공유 토큰을 받아와서 링크에 붙임 — 그냥 ?shared=1만 붙이면
+  // 코드를 아는 아무나 주소창에 타이핑해서 공유로 들어올 수 있어서, 이 토큰이 없으면
+  // 서버가 공유 요청을 무시하고 direct 요청으로 처리함(그래도 direct가 차있으면 자동 공유 전환)
+  const requestShareToken = (code) =>
+    new Promise((resolve) => {
+      const onIssued = ({ code: issuedCode, token }) => {
+        if (issuedCode !== code) return;
+        socket.off("share-token-issued", onIssued);
+        clearTimeout(timeoutId);
+        resolve(token);
+      };
+      const timeoutId = setTimeout(() => {
+        socket.off("share-token-issued", onIssued);
+        resolve(null);
+      }, 3000);
+      socket.on("share-token-issued", onIssued);
+      socket.emit("request-share-token", code);
+    });
 
   const handleShare = async () => {
     if (!connectedCode) return;
-    const shareUrl = `${window.location.origin}/${connectedCode}?shared=1`;
+
+    let token = shareTokenRef.current;
+    if (!token) {
+      token = await requestShareToken(connectedCode);
+      if (token) shareTokenRef.current = token;
+    }
+
+    const shareUrl = token
+      ? `${window.location.origin}/${connectedCode}?shared=1&st=${token}`
+      : `${window.location.origin}/${connectedCode}?shared=1`;
 
     if (navigator.share) {
       try {
