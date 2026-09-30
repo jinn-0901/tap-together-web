@@ -210,18 +210,27 @@ export default function App() {
       setRemoteCart(cart);
     };
 
+    // 매장 키오스크에서 원격 결제 요청을 취소(거절)했을 때 알려줌 —
+    // 이제 결제는 키오스크 쪽에서 직접 확인해야만 완료되므로, 거절될 수도 있음을 리모컨에도 안내
+    const onRemoteCheckoutDeclined = () => {
+      const currentT = tRef.current;
+      if (currentT) showToast(currentT.remoteCheckoutDeclinedToast);
+    };
+
     socket.on("joined", onJoined);
     socket.on("join-error", onJoinError);
     socket.on("kiosk-left", onKioskLeft);
     socket.on("kiosk-code-changed", onKioskCodeChanged);
     socket.on("kiosk-activity", onKioskActivity);
     socket.on("cart-state-updated", onCartStateUpdated);
+    socket.on("remote-checkout-declined", onRemoteCheckoutDeclined);
 
     return () => {
       socket.off("joined", onJoined);
       socket.off("join-error", onJoinError);
       socket.off("kiosk-left", onKioskLeft);
       socket.off("kiosk-code-changed", onKioskCodeChanged);
+      socket.off("remote-checkout-declined", onRemoteCheckoutDeclined);
       socket.off("kiosk-activity", onKioskActivity);
       socket.off("cart-state-updated", onCartStateUpdated);
     };
