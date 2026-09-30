@@ -86,6 +86,7 @@ export default function App() {
 
   const [connectedCode, setConnectedCode] = useState(null);
   const [myRole, setMyRole] = useState(null);
+  const [sharedCount, setSharedCount] = useState(0);
   const [inputCode, setInputCode] = useState("");
   const [connecting, setConnecting] = useState(!!urlCode);
   const [connectError, setConnectError] = useState(null);
@@ -227,14 +228,22 @@ export default function App() {
       setConnecting(false);
       setInputCode("");
       setRemoteCart([]);
+      setSharedCount(0);
       shareTokenRef.current = null;
       window.history.pushState({}, "", "/");
     };
 
-    const onKioskCodeChanged = ({ code }) => {
-      setConnectedCode(code);
-      window.history.pushState({}, "", `/${code}`);
+    // 같은 방에 다른 가족이 새로 들어왔을 때 알려줌 (서버가 참가한 본인 제외하고 보내줌)
+    const onRemoteJoined = () => {
+      const currentT = tRef.current;
+      if (currentT) showToast(currentT.familyJoinedToast);
     };
+
+    const onRosterChanged = ({ sharedCount: count }) => {
+      setSharedCount(count || 0);
+    };
+
+    const onAllRemotesLeft = () => setSharedCount(0);
 
     const onKioskActivity = ({ message, langId }) => {
       // speak()뿐 아니라 화면에도 같이 띄워서(aria-live) 스크린리더/청각장애 사용자도
@@ -256,7 +265,9 @@ export default function App() {
     socket.on("joined", onJoined);
     socket.on("join-error", onJoinError);
     socket.on("kiosk-left", onKioskLeft);
-    socket.on("kiosk-code-changed", onKioskCodeChanged);
+    socket.on("remote-joined", onRemoteJoined);
+    socket.on("remote-roster-changed", onRosterChanged);
+    socket.on("all-remotes-left", onAllRemotesLeft);
     socket.on("kiosk-activity", onKioskActivity);
     socket.on("cart-state-updated", onCartStateUpdated);
     socket.on("remote-checkout-declined", onRemoteCheckoutDeclined);
@@ -265,7 +276,9 @@ export default function App() {
       socket.off("joined", onJoined);
       socket.off("join-error", onJoinError);
       socket.off("kiosk-left", onKioskLeft);
-      socket.off("kiosk-code-changed", onKioskCodeChanged);
+      socket.off("remote-joined", onRemoteJoined);
+      socket.off("remote-roster-changed", onRosterChanged);
+      socket.off("all-remotes-left", onAllRemotesLeft);
       socket.off("remote-checkout-declined", onRemoteCheckoutDeclined);
       socket.off("kiosk-activity", onKioskActivity);
       socket.off("cart-state-updated", onCartStateUpdated);
@@ -351,6 +364,7 @@ export default function App() {
     setLangOpen(false);
     setToastMsg(null);
     setRemoteCart([]);
+    setSharedCount(0);
     pendingCodeRef.current = null;
     shareTokenRef.current = null;
   };
@@ -695,6 +709,9 @@ export default function App() {
         <p>{t.headerDesc}</p>
         <span className="status on">🟢 {t.connectedLabel} · {connectedCode}</span>
         {myRole === "shared" && <span className="status shared-badge">{t.sharedParticipantBadge}</span>}
+        {myRole === "direct" && sharedCount > 0 && (
+          <span className="status shared-badge">👀 {format(t.sharedCountLabel, { n: sharedCount })}</span>
+        )}
         <button className="disconnect-btn" onClick={handleDisconnect}>
           {t.disconnectBtn}
         </button>
