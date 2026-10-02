@@ -128,6 +128,10 @@ export default function App() {
   // direct로 연결된 사람이 공유 버튼을 누르면 서버에서 새로 발급받아 채움
   const shareTokenRef = useRef(urlShareToken);
   const tRef = useRef(null);
+  // 내가 저장해둔 기본값(이전에 켜놨던 쉬운 화면 설정)이 켜져 있으면, direct로
+  // 접속했을 때 키오스크 쪽이 꺼진 상태라도 내 기본값을 그대로 밀어붙여 키오스크를
+  // 켜줌 — 그래서 아래 쉬운화면 동기화(onEasyModeSynced)가 이 값을 되돌리지 못하게 함
+  const easyModeDefaultOnRef = useRef(!!savedSettings?.featureState?.["easy-mode"]);
 
   useEffect(() => {
     fetch(`${SERVER_URL}/translations/web`)
@@ -211,11 +215,22 @@ export default function App() {
       const sharedSuffix = shareTokenRef.current ? `?shared=1&st=${shareTokenRef.current}` : "?shared=1";
       window.history.pushState({}, "", role === "shared" ? `/${code}${sharedSuffix}` : `/${code}`);
       socket.emit("set-language", { code, lang: selectedLangRef.current });
+
+      // direct로 접속했는데 내가 저장해둔 기본값이 "쉬운 화면 켜짐"이면, 지금
+      // 키오스크가 꺼진 상태라도 내 기본값대로 키오스크를 켜줌(공유 참가자는
+      // 애초에 이 설정을 바꿀 수 없으므로 direct일 때만)
+      if (role === "direct" && easyModeDefaultOnRef.current) {
+        socket.emit("toggle-feature", { code, featureId: "easy-mode", on: true });
+      }
     };
 
     // 처음 접속했을 때 내가 예전에 저장해둔 설정(꺼짐)으로 시작하는 대신, 지금
-    // 키오스크가 쉬운 화면 모드(실제 메뉴 사진)면 나도 바로 그렇게 보이게 함
+    // 키오스크가 쉬운 화면 모드(실제 메뉴 사진)면 나도 바로 그렇게 보이게 함.
+    // 단, 내 기본값 자체가 "켜짐"이라 방금 위에서 키오스크에 켜달라고 보낸
+    // 경우에는 키오스크가 아직 반영 전 상태(꺼짐)로 응답한 걸 받아 다시 꺼진
+    // 것처럼 덮어쓰면 안 되므로 무시함
     const onEasyModeSynced = ({ on }) => {
+      if (easyModeDefaultOnRef.current) return;
       setFeatureState((prev) => ({ ...prev, "easy-mode": !!on }));
     };
 
