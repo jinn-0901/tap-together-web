@@ -213,6 +213,12 @@ export default function App() {
       socket.emit("set-language", { code, lang: selectedLangRef.current });
     };
 
+    // 처음 접속했을 때 내가 예전에 저장해둔 설정(꺼짐)으로 시작하는 대신, 지금
+    // 키오스크가 쉬운 화면 모드(실제 메뉴 사진)면 나도 바로 그렇게 보이게 함
+    const onEasyModeSynced = ({ on }) => {
+      setFeatureState((prev) => ({ ...prev, "easy-mode": !!on }));
+    };
+
     const onJoinError = (errorCode) => {
       setConnecting(false);
       const key = ERROR_CODE_KEY_MAP[errorCode];
@@ -263,6 +269,7 @@ export default function App() {
     };
 
     socket.on("joined", onJoined);
+    socket.on("kiosk-easy-mode-synced", onEasyModeSynced);
     socket.on("join-error", onJoinError);
     socket.on("kiosk-left", onKioskLeft);
     socket.on("remote-joined", onRemoteJoined);
@@ -274,6 +281,7 @@ export default function App() {
 
     return () => {
       socket.off("joined", onJoined);
+      socket.off("kiosk-easy-mode-synced", onEasyModeSynced);
       socket.off("join-error", onJoinError);
       socket.off("kiosk-left", onKioskLeft);
       socket.off("remote-joined", onRemoteJoined);
@@ -719,7 +727,7 @@ export default function App() {
         </button>
         {myRole === "direct" && (
           <button className="share-btn" onClick={handleShare}>
-            {shareCopied ? "✅" : "🔗"}
+            {shareCopied ? `✅ ${t.shareCopiedLabel}` : `🔗 ${t.shareBtnLabel}`}
           </button>
         )}
       </header>
