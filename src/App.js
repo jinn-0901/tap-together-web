@@ -472,14 +472,16 @@ export default function App() {
     const parsed = parseVoiceOrder(spokenText, t);
     if (!parsed) return false;
 
-    const { item, options, wantsToBuy } = parsed;
+    const { item, options } = parsed;
+    // 키오스크 쪽이 이제 음성 주문은(옵션을 말했든 메뉴 이름만 말했든) 항상
+    // 바로 장바구니에 담으므로, wantsToBuy 구분 없이 항상 담겼다는 걸 보여줌
     socket.emit("remote-voice-order", {
       code: connectedCode,
       itemId: item.id,
       options,
-      wantsToBuy,
+      wantsToBuy: true,
     });
-    showToastVisualOnly(`${t.menu[item.id]} ${wantsToBuy ? "🛒" : ""}`);
+    showToastVisualOnly(`${t.menu[item.id]} 🛒`);
     return true;
   };
 
