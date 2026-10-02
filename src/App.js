@@ -460,6 +460,13 @@ export default function App() {
 
   const applyVoiceMatch = (match) => {
     if (match.type === "feature") {
+      // 버튼은 공유 참가자 화면에서 숨겼지만, 음성 명령("큰글씨 켜줘" 등)은 버튼을
+      // 거치지 않는 별도 경로라서 여기서도 똑같이 direct만 허용되게 막아야 함
+      if (myRole !== "direct") {
+        showToast(t.sharedCannotToggleToast);
+        return;
+      }
+
       let willBeOn;
       if (match.action === "on") willBeOn = true;
       else if (match.action === "off") willBeOn = false;
@@ -883,60 +890,70 @@ export default function App() {
           <span className="desc">{listening ? t.listening : t.features.voice.desc}</span>
         </button>
 
-        <div className={`card ${isVoiceGuideOn ? "on" : ""}`}>
-          <button className="voice-guide-toggle" aria-pressed={isVoiceGuideOn} onClick={() => toggleFeature("voice-guide")}>
-            <div className="card-top">
-              <span className="icon">{TOGGLE_FEATURE_ICONS["voice-guide"]}</span>
-              <span className={`switch ${isVoiceGuideOn ? "on" : ""}`}>
-                <span className="switch-knob" />
-              </span>
-            </div>
-            <span className="title">{t.features["voice-guide"].title}</span>
-            <span className="desc">{t.features["voice-guide"].desc}</span>
-            <span className={`state-label ${isVoiceGuideOn ? "on" : "off"}`}>
-              {isVoiceGuideOn ? t.on : t.off}
-            </span>
-          </button>
-
-          {isVoiceGuideOn && (
-            <div className="volume-row" onClick={(e) => e.stopPropagation()}>
-              <span className="volume-icon">🔉</span>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.1"
-                value={volume}
-                onChange={(e) => setVolume(Number(e.target.value))}
-                aria-label={t.volumeLabel}
-              />
-              <span className="volume-value">{Math.round(volume * 100)}%</span>
-            </div>
-          )}
-        </div>
-
-        {TOGGLE_FEATURE_IDS.filter((id) => id !== "voice" && id !== "voice-guide").map((id) => {
-          const feature = t.features[id];
-          const isOn = !!featureState[id];
-          return (
-            <button
-              key={id}
-              className={`card ${isOn ? "on" : ""}`}
-              aria-pressed={isOn}
-              onClick={() => toggleFeature(id)}
-            >
-              <div className="card-top">
-                <span className="icon">{TOGGLE_FEATURE_ICONS[id]}</span>
-                <span className={`switch ${isOn ? "on" : ""}`}>
-                  <span className="switch-knob" />
+        {/* 큰글씨/고대비/음성안내/쉬운화면은 실제 키오스크 화면 설정을 바꾸는
+            버튼이라 direct(어르신을 직접 돕는 사람)만 조작하게 함 — 공유로
+            들어온 다른 가족까지 건드릴 수 있으면 여러 명이 서로 설정을
+            덮어쓰거나, 구경만 하려던 사람이 실수로 어르신 화면을 바꿔버릴
+            수 있음. 공유 참가자 화면엔 이 카드들 자체를 안 보여줌(서버도
+            direct가 아니면 toggle-feature 요청을 거부함) */}
+        {myRole === "direct" && (
+          <>
+            <div className={`card ${isVoiceGuideOn ? "on" : ""}`}>
+              <button className="voice-guide-toggle" aria-pressed={isVoiceGuideOn} onClick={() => toggleFeature("voice-guide")}>
+                <div className="card-top">
+                  <span className="icon">{TOGGLE_FEATURE_ICONS["voice-guide"]}</span>
+                  <span className={`switch ${isVoiceGuideOn ? "on" : ""}`}>
+                    <span className="switch-knob" />
+                  </span>
+                </div>
+                <span className="title">{t.features["voice-guide"].title}</span>
+                <span className="desc">{t.features["voice-guide"].desc}</span>
+                <span className={`state-label ${isVoiceGuideOn ? "on" : "off"}`}>
+                  {isVoiceGuideOn ? t.on : t.off}
                 </span>
-              </div>
-              <span className="title">{feature.title}</span>
-              <span className="desc">{feature.desc}</span>
-              <span className={`state-label ${isOn ? "on" : "off"}`}>{isOn ? t.on : t.off}</span>
-            </button>
-          );
-        })}
+              </button>
+
+              {isVoiceGuideOn && (
+                <div className="volume-row" onClick={(e) => e.stopPropagation()}>
+                  <span className="volume-icon">🔉</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={volume}
+                    onChange={(e) => setVolume(Number(e.target.value))}
+                    aria-label={t.volumeLabel}
+                  />
+                  <span className="volume-value">{Math.round(volume * 100)}%</span>
+                </div>
+              )}
+            </div>
+
+            {TOGGLE_FEATURE_IDS.filter((id) => id !== "voice" && id !== "voice-guide").map((id) => {
+              const feature = t.features[id];
+              const isOn = !!featureState[id];
+              return (
+                <button
+                  key={id}
+                  className={`card ${isOn ? "on" : ""}`}
+                  aria-pressed={isOn}
+                  onClick={() => toggleFeature(id)}
+                >
+                  <div className="card-top">
+                    <span className="icon">{TOGGLE_FEATURE_ICONS[id]}</span>
+                    <span className={`switch ${isOn ? "on" : ""}`}>
+                      <span className="switch-knob" />
+                    </span>
+                  </div>
+                  <span className="title">{feature.title}</span>
+                  <span className="desc">{feature.desc}</span>
+                  <span className={`state-label ${isOn ? "on" : "off"}`}>{isOn ? t.on : t.off}</span>
+                </button>
+              );
+            })}
+          </>
+        )}
       </main>
 
       {orderOptionsFor && (
