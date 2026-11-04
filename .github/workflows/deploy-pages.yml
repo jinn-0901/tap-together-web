@@ -1,0 +1,60 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # 기본 서버 주소는 레포의 .env에 들어 있음.
+      # 다른 서버를 쓰고 싶으면 레포 Settings > Secrets and variables > Actions > Variables에
+      # REACT_APP_SERVER_URL을 만들면 그 값이 .env보다 우선함 (비어 있으면 무시)
+      - name: Apply optional repository variables
+        env:
+          SERVER_URL: ${{ vars.REACT_APP_SERVER_URL }}
+        run: |
+          if [ -n "$SERVER_URL" ]; then
+            echo "REACT_APP_SERVER_URL=$SERVER_URL" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build
+        run: npm run build
+        env:
+          # 프로젝트 페이지는 https://<사용자>.github.io/<레포이름>/ 아래에서 열리므로 레포 이름을 기본 경로로 씀
+          PUBLIC_URL: /${{ github.event.repository.name }}
+          CI: "false"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

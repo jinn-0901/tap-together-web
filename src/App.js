@@ -27,9 +27,28 @@ const ERROR_CODE_KEY_MAP = {
   TOO_MANY_ATTEMPTS: "errorTooManyAttempts",
 };
 
-const getCodeFromPath = () => {
-  const path = window.location.pathname.replace(/^\/|\/$/g, "");
-  return /^\d{6}$/.test(path) ? path : null;
+// GitHub Pages는 /레포이름/123456 같은 경로로 직접 들어오거나 새로고침하면 404가 나고
+// 서버 설정(리라이트)도 바꿀 수 없어서, 접속 코드를 경로가 아니라 ?code=123456
+// 쿼리로 주고받음 (예전 /123456 형태 주소도 열리도록 읽기만 같이 지원)
+const LEGACY_CODE_PATH = /\/(\d{6})\/?$/;
+
+const getCodeFromUrl = () => {
+  const queryCode = new URLSearchParams(window.location.search).get("code");
+  if (queryCode && /^\d{6}$/.test(queryCode)) return queryCode;
+  const legacy = window.location.pathname.match(LEGACY_CODE_PATH);
+  return legacy ? legacy[1] : null;
+};
+
+// 현재 사이트의 기본 경로(예: /tap-together-web/)는 그대로 두고 쿼리만 만들어줌
+const buildPageUrl = (code, extraParams = {}) => {
+  const query = new URLSearchParams();
+  if (code) query.set("code", code);
+  Object.entries(extraParams).forEach(([key, value]) => {
+    if (value) query.set(key, value);
+  });
+  const queryString = query.toString();
+  const basePath = window.location.pathname.replace(LEGACY_CODE_PATH, "/");
+  return queryString ? `${basePath}?${queryString}` : basePath;
 };
 
 const getIsSharedFromUrl = () => {
@@ -78,7 +97,7 @@ const buildDefaultFeatureState = (saved) => {
 };
 
 export default function App() {
-  const urlCode = getCodeFromPath();
+  const urlCode = getCodeFromUrl();
   const urlIsShared = getIsSharedFromUrl();
   const urlShareToken = getShareTokenFromUrl();
 
@@ -174,7 +193,7 @@ export default function App() {
 
   useEffect(() => {
     const onPopState = () => {
-      const code = getCodeFromPath();
+      const code = getCodeFromUrl();
       if (!code) {
         setConnectedCode(null);
         setConnecting(false);
@@ -212,8 +231,11 @@ export default function App() {
       setMyRole(role);
       setConnecting(false);
       setConnectError(null);
-      const sharedSuffix = shareTokenRef.current ? `?shared=1&st=${shareTokenRef.current}` : "?shared=1";
-      window.history.pushState({}, "", role === "shared" ? `/${code}${sharedSuffix}` : `/${code}`);
+      window.history.pushState(
+        {},
+        "",
+        role === "shared" ? buildPageUrl(code, { shared: "1", st: shareTokenRef.current }) : buildPageUrl(code)
+      );
       socket.emit("set-language", { code, lang: selectedLangRef.current });
 
       // direct로 접속했는데 내가 저장해둔 기본값이 "쉬운 화면 켜짐"이면, 지금
@@ -240,7 +262,7 @@ export default function App() {
       const currentT = tRef.current;
       setConnectError(key && currentT ? currentT[key] : errorCode);
       setConnectedCode(null);
-      window.history.pushState({}, "", "/");
+      window.history.pushState({}, "", buildPageUrl(null));
     };
 
     const onKioskLeft = () => {
@@ -251,7 +273,7 @@ export default function App() {
       setRemoteCart([]);
       setSharedCount(0);
       shareTokenRef.current = null;
-      window.history.pushState({}, "", "/");
+      window.history.pushState({}, "", buildPageUrl(null));
     };
 
     // 같은 방에 다른 가족이 새로 들어왔을 때 알려줌 (서버가 참가한 본인 제외하고 보내줌)
@@ -378,7 +400,7 @@ export default function App() {
     if (connectedCode) {
       socket.emit("leave-room", connectedCode);
     }
-    window.history.pushState({}, "", "/");
+    window.history.pushState({}, "", buildPageUrl(null));
     setConnectedCode(null);
     setMyRole(null);
     setInputCode("");
@@ -421,9 +443,7 @@ export default function App() {
       if (token) shareTokenRef.current = token;
     }
 
-    const shareUrl = token
-      ? `${window.location.origin}/${connectedCode}?shared=1&st=${token}`
-      : `${window.location.origin}/${connectedCode}?shared=1`;
+    const shareUrl = `${window.location.origin}${buildPageUrl(connectedCode, { shared: "1", st: token })}`;
 
     if (navigator.share) {
       try {
