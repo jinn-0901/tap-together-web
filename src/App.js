@@ -800,7 +800,7 @@ export default function App() {
                   <span className="order-menu-photo-wrap">
                     <img
                       className="order-menu-photo"
-                      src={getMenuImageUrl(SERVER_URL, item.id)}
+                      src={getMenuImageUrl(item)}
                       alt={t.menu[item.id]}
                       onError={(e) => {
                         e.target.parentElement.style.display = "none";
