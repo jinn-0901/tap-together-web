@@ -3,7 +3,7 @@ import "./App.css";
 import { CARD_LANGUAGES, SPEECH_LANG_MAP, isCardLanguage } from "./i18n/languages";
 import { matchVoiceCommand } from "./voice/voiceCommands";
 import { parseVoiceOrder, NOT_FOUND_MESSAGES } from "./voice/menuVoiceOrder";
-import { CATEGORIES, MENU, WHIP_AVAILABLE_IDS, FIXED_ICE_IDS, DEFAULT_OPTIONS, computeUnitPrice, getMenuImageUrl } from "./data/menu";
+import { CATEGORIES, MENU, WHIP_AVAILABLE_IDS, FIXED_ICE_IDS, DEFAULT_OPTIONS, computeUnitPrice, getMenuImageUrl, applyMenuNames } from "./data/menu";
 import { io } from "socket.io-client";
 
 const SERVER_URL = process.env.REACT_APP_SERVER_URL || "http://localhost:4000";
@@ -155,7 +155,7 @@ export default function App() {
   useEffect(() => {
     fetch(`${SERVER_URL}/translations/web`)
       .then((res) => res.json())
-      .then((data) => setTranslationsData(data))
+      .then((data) => setTranslationsData(applyMenuNames(data)))
       .catch(() => setTranslationsData(null));
   }, []);
 
