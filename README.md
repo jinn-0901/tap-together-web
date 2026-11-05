@@ -16,4 +16,4 @@
 
 ## ChatGPT에게 시키기
 
-tap-together-app 의 `CHATGPT_PROMPT.md` 를 ChatGPT에 먼저 붙여넣고, 이 프로젝트의 `src/data/menu.js` 글을 붙여넣어서 시키면 돼요.
+우리 반 GPT에게 말로 시키면 앱과 웹을 한꺼번에 바꿔 줘요. 자세한 방법은 tap-together-app 의 README 4번을 보세요.
