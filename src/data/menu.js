@@ -12,7 +12,7 @@ export const MENU = [
   {
     id: "americano",   // 메뉴 이름표(영어). 겹치면 안 돼요. 이미 있는 메뉴는 바꾸지 마세요
     category: "coffee",   // coffee(커피) latte(라떼) tea(차) ade(에이드) 중 하나
-    price: 3000,   // 가격(원). 숫자만 쓰세요
+    price: 3001,   // 가격(원). 숫자만 쓰세요
     icon: "☕",   // 이모지 하나
     photo: "americano.jpg",   // 사진 파일 이름. public 폴더의 menu-images 폴더에 이 이름으로 올리세요
     names: { ko: "아메리카노", en: "Americano", zh: "美式咖啡", ja: "アメリカーノ", vi: "Americano" },   // 메뉴 이름 (5개 나라 말)
