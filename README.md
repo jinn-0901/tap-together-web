@@ -16,4 +16,4 @@
 
 ## ChatGPT에게 시키기
 
-ChatGPT의 Codex 에 이 프로젝트를 연결하고 말로 시키면 메뉴가 바뀌어요. 이 프로젝트의 `AGENTS.md` 에 안내문이 들어 있어서 따로 가르칠 필요가 없어요. 같은 말을 tap-together-app 에서도 해야 해요. 자세한 방법은 tap-together-app 의 README 2번을 보세요.
+ChatGPT를 GitHub와 연결해 두고 말로 시키면 앱과 웹을 한꺼번에 바꿔 줘요. 연결하는 법과 ChatGPT에게 알려 줄 글은 tap-together-app 의 README 2번을 보세요.
