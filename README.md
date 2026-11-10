@@ -16,4 +16,4 @@
 
 ## ChatGPT에게 시키기
 
-ChatGPT를 GitHub와 연결해 두고 말로 시키면 앱과 웹을 한꺼번에 바꿔 줘요. 연결하는 법과 ChatGPT에게 알려 줄 글은 tap-together-app 의 README 2번을 보세요.
+ChatGPT에게 말하면 "바꾸는 글"을 만들어 줘요. 그 글을 이 프로젝트의 Actions → Edit menu (ChatGPT helper) → Run workflow 에 붙여넣으면 메뉴가 바뀌어요. tap-together-app 에서도 똑같이 해요. 자세한 방법은 tap-together-app 의 README 2번을 보세요.
