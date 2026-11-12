@@ -5,6 +5,7 @@ import { matchVoiceCommand } from "./voice/voiceCommands";
 import { parseVoiceOrder, NOT_FOUND_MESSAGES } from "./voice/menuVoiceOrder";
 import { CATEGORIES, MENU, WHIP_AVAILABLE_IDS, FIXED_ICE_IDS, DEFAULT_OPTIONS, computeUnitPrice, getMenuImageUrl, applyMenuNames } from "./data/menu";
 import { io } from "socket.io-client";
+import { CUSTOM_FEATURES } from "./data/customFeatures";
 
 const SERVER_URL = process.env.REACT_APP_SERVER_URL || "http://localhost:4000";
 const socket = io(SERVER_URL);
@@ -91,9 +92,14 @@ const format = (template, vars) =>
 
 const FALLBACK_LOADING_TEXT = "Loading...";
 
+const getCustomFeatureName = (feature, langId) => feature.names[langId] || feature.names.en || feature.names.ko;
+const CUSTOM_FEATURE_IDS = CUSTOM_FEATURES.map((f) => f.id);
 const buildDefaultFeatureState = (saved) => {
   const base = { "voice-guide": true };
-  return saved ? { ...base, ...saved } : base;
+  const merged = saved ? { ...base, ...saved } : base;
+  // 학생이 만든 새 기능은 키오스크가 다시 시작하면 꺼져 있으니, 리모컨도 항상 꺼진 채로 시작해요
+  CUSTOM_FEATURE_IDS.forEach((id) => delete merged[id]);
+  return merged;
 };
 
 export default function App() {
@@ -466,7 +472,8 @@ export default function App() {
   const toggleFeature = (featureId) => {
     const willBeOn = !featureState[featureId];
     setFeatureState((prev) => ({ ...prev, [featureId]: willBeOn }));
-    const name = t.features[featureId].title;
+    const custom = CUSTOM_FEATURES.find((f) => f.id === featureId);
+    const name = custom ? getCustomFeatureName(custom, selectedLang) : t.features[featureId].title;
     showToast(willBeOn ? format(t.featureOnToast, { name }) : format(t.featureOffToast, { name }));
     socket.emit("toggle-feature", { code: connectedCode, featureId, on: willBeOn });
   };
@@ -983,6 +990,28 @@ export default function App() {
                   </div>
                   <span className="title">{feature.title}</span>
                   <span className="desc">{feature.desc}</span>
+                  <span className={`state-label ${isOn ? "on" : "off"}`}>{isOn ? t.on : t.off}</span>
+                </button>
+              );
+            })}
+
+            {/* 학생이 만든 새 기능 버튼 (src/data/customFeatures.js) */}
+            {CUSTOM_FEATURES.map((feature) => {
+              const isOn = !!featureState[feature.id];
+              return (
+                <button
+                  key={feature.id}
+                  className={`card ${isOn ? "on" : ""}`}
+                  aria-pressed={isOn}
+                  onClick={() => toggleFeature(feature.id)}
+                >
+                  <div className="card-top">
+                    <span className="icon">{feature.icon}</span>
+                    <span className={`switch ${isOn ? "on" : ""}`}>
+                      <span className="switch-knob" />
+                    </span>
+                  </div>
+                  <span className="title">{getCustomFeatureName(feature, selectedLang)}</span>
                   <span className={`state-label ${isOn ? "on" : "off"}`}>{isOn ? t.on : t.off}</span>
                 </button>
               );

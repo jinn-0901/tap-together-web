@@ -17,3 +17,7 @@
 ## ChatGPT에게 시키기
 
 ChatGPT에게 말하면 "바꾸는 글"을 만들어 줘요. 그 글을 이 프로젝트의 Actions → Edit menu (ChatGPT helper) → Run workflow 에 붙여넣으면 메뉴가 바뀌어요. tap-together-app 에서도 똑같이 해요. 자세한 방법은 tap-together-app 의 README 2번을 보세요.
+
+## 새 리모컨 버튼
+
+ChatGPT로 리모컨에 새 버튼을 만들 수도 있어요. 만들어진 버튼은 `src/data/customFeatures.js` 에 들어가요. 방법은 tap-together-app 의 `docs/custom-features.md` 를 보세요. 같은 한 줄을 tap-together-app 과 여기 두 곳 모두에 붙여넣어요.
