@@ -3,5 +3,6 @@
 // 기능 하나는 한 줄이에요: 이름표(id), 이모지(icon), 5개 나라 말 이름(names).
 export const CUSTOM_FEATURES = [
   // FEATURES-START
+  {"id":"test-dark","icon":"🌙","names":{"ko":"테스트","en":"Test"}},
   // FEATURES-END
 ];
